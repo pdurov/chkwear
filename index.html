@@ -1337,9 +1337,9 @@ useEffect(() => {
         const db = window.__firebaseDb;
         if (!db) return;
         const { collection, onSnapshot } = window.__firebaseModules;
-        const unsub = onSnapshot(collection(db, 'products'), snap => {
-            setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
-        });
+        const unsub = db.collection('products').onSnapshot(snap => {
+    setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+});
         return unsub;
     };
     if (window.__firebaseDb) {
@@ -1389,13 +1389,28 @@ useEffect(() => {
                     {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} tgUser={tgUser} />}
                 </div>
                 <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
-                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){const {collection,addDoc}=window.__firebaseModules;await addDoc(collection(db,'products'),p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){const {doc,deleteDoc}=window.__firebaseModules;await deleteDoc(doc(db,'products',id));}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
+                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
+</script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
+    authDomain: "chkwear-1f9b7.firebaseapp.com",
+    projectId: "chkwear-1f9b7",
+    storageBucket: "chkwear-1f9b7.firebasestorage.app",
+    messagingSenderId: "773316792812",
+    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
+  });
+  const db = firebase.firestore();
+  window.__firebaseDb = db;
+  window.dispatchEvent(new Event('firebaseReady'));
 </script>
 </body>
 </html>
