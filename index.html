@@ -1398,42 +1398,6 @@ const tgUser = tg?.initDataUnsafe?.user;
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
 </script>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
-    authDomain: "chkwear-1f9b7.firebaseapp.com",
-    projectId: "chkwear-1f9b7",
-    storageBucket: "chkwear-1f9b7.firebasestorage.app",
-    messagingSenderId: "773316792812",
-    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.__firebaseDb = db;
-  window.__firebaseModules = { collection, getDocs, addDoc, deleteDoc, doc, onSnapshot };
-
-  window.dispatchEvent(new Event('firebaseReady'));
-</script>
-  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
-    authDomain: "chkwear-1f9b7.firebaseapp.com",
-    projectId: "chkwear-1f9b7",
-    storageBucket: "chkwear-1f9b7.firebasestorage.app",
-    messagingSenderId: "773316792812",
-    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.__firebaseDb = db;
-  window.__firebaseModules = { collection, getDocs, addDoc, deleteDoc, doc, onSnapshot };
-</script>
 </body>
 </html>
 
