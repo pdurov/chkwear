@@ -1320,7 +1320,19 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [isAdmin, setIsAdmin] = useState(false);
         const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
         const [products, setProducts] = useState(() => {
-            useEffect(() => {
+    try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
+});
+        const [referralCode] = useState(() => {
+            const saved = localStorage.getItem('userReferralCode');
+            if (saved) return saved;
+            const code = 'CHKWEAR' + Math.random().toString(36).substring(2,8).toUpperCase();
+            localStorage.setItem('userReferralCode', code);
+            return code;
+        });
+        const [referralStats] = useState({ referralsCount:0, cashback:0 });
+        const tg = window.Telegram?.WebApp;
+const tgUser = tg?.initDataUnsafe?.user;
+useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
         if (!db) return;
@@ -1330,7 +1342,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         });
         return unsub;
     };
-
     if (window.__firebaseDb) {
         const unsub = init();
         return () => unsub && unsub();
@@ -1342,19 +1353,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         window.addEventListener('firebaseReady', handler);
         return () => window.removeEventListener('firebaseReady', handler);
     }
-}, []);            try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
-        });
-        const [referralCode] = useState(() => {
-            const saved = localStorage.getItem('userReferralCode');
-            if (saved) return saved;
-            const code = 'CHKWEAR' + Math.random().toString(36).substring(2,8).toUpperCase();
-            localStorage.setItem('userReferralCode', code);
-            return code;
-        });
-        const [referralStats] = useState({ referralsCount:0, cashback:0 });
-        const tg = window.Telegram?.WebApp;
-const tgUser = tg?.initDataUnsafe?.user;
-
+}, []);
         useEffect(() => {
             const saved = localStorage.getItem('theme');
             if (saved) setTheme(saved);
