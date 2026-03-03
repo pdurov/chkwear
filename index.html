@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f9fafb; color: #111827; }
@@ -1235,8 +1236,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 // PROFILE
-    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel }) {
-        const [activeScreen, setActiveScreen] = useState('main');
+    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser }) {
+        const [activeScreфen, setActiveScreen] = useState('main');
         if (activeScreen==='orders') return <Orders orders={orders} onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='settings') return <Settings theme={theme} setTheme={setTheme} onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='support') return <Support onBack={()=>setActiveScreen('main')} />;
@@ -1260,8 +1261,17 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="p-4">
                 <div className="mb-6"><h1 className="app-text">Профиль</h1></div>
                 <div className="app-card rounded-xl p-6 shadow-sm mb-4 flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center"><UserIcon /></div>
-                    <div><p className="app-text-secondary">Telegram User</p>{isAdmin&&<p className="text-blue-600 text-sm mt-1">Администратор</p>}</div>
+                   <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+    {tgUser?.photo_url
+        ? <img src={tgUser.photo_url} className="w-full h-full object-cover" />
+        : <UserIcon />
+    }
+</div>
+<div>
+    <p className="app-text">{tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Пользователь'}</p>
+    {tgUser?.username && <p className="app-text-secondary text-sm">@{tgUser.username}</p>}
+    {isAdmin&&<p className="text-blue-600 text-sm mt-1">Администратор</p>}
+</div>
                 </div>
                 <div className="app-card rounded-xl shadow-sm overflow-hidden">
                     {menuItems.map((item,i)=>(
@@ -1320,15 +1330,17 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             return code;
         });
         const [referralStats] = useState({ referralsCount:0, cashback:0 });
+        const tg = window.Telegram?.WebApp;
+const tgUser = tg?.initDataUnsafe?.user;
 
         useEffect(() => {
             const saved = localStorage.getItem('theme');
             if (saved) setTheme(saved);
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('admin')==='true' || localStorage.getItem('isAdmin')==='true') {
-                setIsAdmin(true);
-                localStorage.setItem('isAdmin','true');
-            }
+            if (urlParams.get('admin')==='true' || localStorage.getItem('isAdmin')==='true' || tgUser?.id === 1910027948) {
+    setIsAdmin(true);
+    localStorage.setItem('isAdmin','true');
+}
         }, []);
 
         useEffect(() => {
@@ -1353,7 +1365,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} />}
                     {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} />}
                     {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} />}
-                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} />}
+                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} tgUser={tgUser} />}
                 </div>
                 <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
                 {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} onAddProduct={p=>setProducts(prev=>[...prev,p])} onDeleteProduct={id=>setProducts(prev=>prev.filter(p=>p.id!==id))} />}
