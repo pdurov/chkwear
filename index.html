@@ -1336,7 +1336,6 @@ useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
         if (!db) return;
-        const { collection, onSnapshot } = window.__firebaseModules;
         const unsub = db.collection('products').onSnapshot(snap => {
     setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
 });
