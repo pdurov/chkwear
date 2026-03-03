@@ -1237,7 +1237,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 // PROFILE
     function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser }) {
-        const [activeScreфen, setActiveScreen] = useState('main');
+        const [activeScreen, setActiveScreen] = useState('main');
         if (activeScreen==='orders') return <Orders orders={orders} onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='settings') return <Settings theme={theme} setTheme={setTheme} onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='support') return <Support onBack={()=>setActiveScreen('main')} />;
@@ -1378,4 +1378,5 @@ const tgUser = tg?.initDataUnsafe?.user;
 </script>
 </body>
 </html>
+
 
