@@ -211,22 +211,28 @@
         const mapRef = useRef(null);
         const mapInstanceRef = useRef(null);
         useEffect(() => {
-            if (!mapRef.current || mapInstanceRef.current) return;
-            const map = L.map(mapRef.current).setView([55.1848, 30.2016], 13);
-            mapInstanceRef.current = map;
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-            let marker = null;
-            map.on('click', async (e) => {
-                if (marker) marker.remove();
-                marker = L.marker(e.latlng).addTo(map);
-                try {
-                    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
-                    const d = await r.json();
-                    if (d.display_name) onAddressSelected(d.display_name);
-                } catch(err) { console.error(err); }
-            });
-            return () => { map.remove(); mapInstanceRef.current = null; };
-        }, []);
+    if (!mapRef.current || mapInstanceRef.current) return;
+    const timer = setTimeout(() => {
+        const map = L.map(mapRef.current, {tap: false}).setView([55.1848, 30.2016], 13);
+        mapInstanceRef.current = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        map.invalidateSize();
+        let marker = null;
+        map.on('click', async (e) => {
+            if (marker) marker.remove();
+            marker = L.marker(e.latlng).addTo(map);
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                const d = await r.json();
+                if (d.display_name) onAddressSelected(d.display_name);
+            } catch(err) { console.error(err); }
+        });
+    }, 300);
+    return () => { 
+        clearTimeout(timer);
+        if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+    };
+}, []);
         return (
             <div className="app-card rounded-xl p-4 mb-4">
                 <div className="flex items-center justify-between mb-3">
@@ -1412,4 +1418,3 @@ useEffect(() => {
 </script>
 </body>
 </html>
-
