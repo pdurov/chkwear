@@ -1321,15 +1321,28 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
         const [products, setProducts] = useState(() => {
             useEffect(() => {
-    const db = window.__firebaseDb;
-    if (!db) return;
-    const { collection, onSnapshot } = window.__firebaseModules;
-    const unsub = onSnapshot(collection(db, 'products'), snap => {
-        setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
-    });
-    return () => unsub();
-}, []);
-            try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
+    const init = () => {
+        const db = window.__firebaseDb;
+        if (!db) return;
+        const { collection, onSnapshot } = window.__firebaseModules;
+        const unsub = onSnapshot(collection(db, 'products'), snap => {
+            setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+        });
+        return unsub;
+    };
+
+    if (window.__firebaseDb) {
+        const unsub = init();
+        return () => unsub && unsub();
+    } else {
+        const handler = () => {
+            const unsub = init();
+            window.removeEventListener('firebaseReady', handler);
+        };
+        window.addEventListener('firebaseReady', handler);
+        return () => window.removeEventListener('firebaseReady', handler);
+    }
+}, []);            try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
         });
         const [referralCode] = useState(() => {
             const saved = localStorage.getItem('userReferralCode');
@@ -1387,6 +1400,24 @@ const tgUser = tg?.initDataUnsafe?.user;
 </script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
+    authDomain: "chkwear-1f9b7.firebaseapp.com",
+    projectId: "chkwear-1f9b7",
+    storageBucket: "chkwear-1f9b7.firebasestorage.app",
+    messagingSenderId: "773316792812",
+    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.__firebaseDb = db;
+  window.__firebaseModules = { collection, getDocs, addDoc, deleteDoc, doc, onSnapshot };
+
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
   import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
   const firebaseConfig = {
