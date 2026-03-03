@@ -284,7 +284,7 @@
                 const url = URL.createObjectURL(file);
                 img.onload = () => {
                     if (img.width < 300 || img.height < 300) { invalid.push(file.name+': мин 300x300'); }
-                    else if (img.width > 2000 || img.height > 2000) { invalid.push(file.name+': макс 2000x2000'); }
+                    else if (img.width > 5000 || img.height > 5000) { invalid.push(file.name+': макс 5000x5000'); }
                     else {
                         const canvas = document.createElement('canvas');
                         let w = img.width, h = img.height;
