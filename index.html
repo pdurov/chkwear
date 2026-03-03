@@ -1320,6 +1320,15 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [isAdmin, setIsAdmin] = useState(false);
         const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
         const [products, setProducts] = useState(() => {
+            useEffect(() => {
+    const db = window.__firebaseDb;
+    if (!db) return;
+    const { collection, onSnapshot } = window.__firebaseModules;
+    const unsub = onSnapshot(collection(db, 'products'), snap => {
+        setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    });
+    return () => unsub();
+}, []);
             try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
         });
         const [referralCode] = useState(() => {
@@ -1368,7 +1377,7 @@ const tgUser = tg?.initDataUnsafe?.user;
                     {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} tgUser={tgUser} />}
                 </div>
                 <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
-                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} onAddProduct={p=>setProducts(prev=>[...prev,p])} onDeleteProduct={id=>setProducts(prev=>prev.filter(p=>p.id!==id))} />}
+                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){const {collection,addDoc}=window.__firebaseModules;await addDoc(collection(db,'products'),p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){const {doc,deleteDoc}=window.__firebaseModules;await deleteDoc(doc(db,'products',id));}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
     }
@@ -1376,7 +1385,24 @@ const tgUser = tg?.initDataUnsafe?.user;
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
 </script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
+    authDomain: "chkwear-1f9b7.firebaseapp.com",
+    projectId: "chkwear-1f9b7",
+    storageBucket: "chkwear-1f9b7.firebasestorage.app",
+    messagingSenderId: "773316792812",
+    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.__firebaseDb = db;
+  window.__firebaseModules = { collection, getDocs, addDoc, deleteDoc, doc, onSnapshot };
+</script>
 </body>
 </html>
-
 
