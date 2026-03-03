@@ -370,7 +370,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                     {uploadedImages.map((img,i) => (
                                         <div key={i} className="relative">
                                             <img src={img.url} className="w-full h-24 object-cover rounded-lg" />
-                                            <button onClick={()=>setUploadedImages(p=>p.filter((_,idx)=>idx!==i))} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><XIcon /></button>
+                                            <button onClick={()=>setUploadedImages(p=>p.filter((_,idx)=>idx!==i))} style={{position:'absolute',top:'4px',right:'4px',background:'red',border:'none',borderRadius:'50%',width:'24px',height:'24px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'white',zIndex:10}}>✕</button>
                                         </div>
                                     ))}
                                 </div>
