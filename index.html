@@ -1045,26 +1045,54 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
     // REFERRAL
     function ReferralScreen({ onBack, referralCode, referralStats }) {
-        const [copied, setCopied] = useState(false);
-        return (
-            <div className="p-4">
-                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
-                <div className="mb-6"><h1 className="app-text mb-2">Реферальная программа</h1><p className="app-text-secondary text-sm">Получайте 1% кешбека от покупок друзей</p></div>
-                <div className="app-card rounded-xl p-6 mb-4">
-                    <p className="app-text-secondary text-sm mb-2">Ваш реферальный код:</p>
-                    <div className="bg-blue-50 rounded-xl p-4 text-center mb-4"><p className="text-blue-600" style={{fontSize:'1.5rem',fontWeight:600,letterSpacing:'0.1em'}}>{referralCode}</p></div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={()=>{navigator.clipboard.writeText(referralCode);setCopied(true);setTimeout(()=>setCopied(false),2000)}} className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"><CopyIcon /><span>{copied?'Скопировано!':'Копировать'}</span></button>
-                        <button onClick={()=>navigator.share?.({title:'CHKWEAR',text:`Промокод ${referralCode} — скидка 5%!`})} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl hover:bg-gray-100 transition-colors"><ShareIcon /><span>Поделиться</span></button>
-                    </div>
+    const [copied, setCopied] = useState(false);
+    const botLink = `https://t.me/chkwear_bot?start=${referralCode}`;
+    
+    const shareLink = () => {
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`);
+        } else {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`, '_blank');
+        }
+    };
+
+    return (
+        <div className="p-4">
+            <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+            <div className="mb-6"><h1 className="app-text mb-2">Реферальная программа</h1><p className="app-text-secondary text-sm">Приглашай друзей и получай 1000 CHK за каждого!</p></div>
+            
+            <div className="app-card rounded-xl p-6 mb-4">
+                <p className="app-text-secondary text-sm mb-2">Ваша реферальная ссылка:</p>
+                <div className="rounded-xl p-3 mb-4" style={{background:'rgba(59,130,246,0.1)',wordBreak:'break-all'}}>
+                    <p className="text-blue-600 text-sm">{botLink}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><UsersIcon /></div><p className="app-text-secondary text-sm mb-1">Приглашено</p><p className="app-text" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount}</p></div>
-                    <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2" style={{background:'rgba(22,163,74,0.1)'}}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="app-text"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p className="app-text-secondary text-sm mb-1">Кешбек</p><p className="text-green-600" style={{fontSize:'1.5rem',fontWeight:600}}>${referralStats.cashback}</p></div>
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={()=>{navigator.clipboard.writeText(botLink);setCopied(true);setTimeout(()=>setCopied(false),2000)}} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl transition-colors">
+                        <CopyIcon /><span>{copied?'Скопировано!':'Копировать'}</span>
+                    </button>
+                    <button onClick={shareLink} className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                        <ShareIcon /><span>Поделиться</span>
+                    </button>
                 </div>
             </div>
-        );
-    }
+
+            <div className="app-card rounded-xl p-4 mb-4">
+                <h3 className="app-text mb-3">Как это работает:</h3>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">1</div><p className="app-text text-sm">Поделись своей ссылкой с другом</p></div>
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</div><p className="app-text text-sm">Друг открывает приложение по твоей ссылке</p></div>
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</div><p className="app-text text-sm">Ты получаешь <strong>1000 CHK</strong> автоматически!</p></div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><UsersIcon /></div><p className="app-text-secondary text-sm mb-1">Приглашено</p><p className="app-text" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount}</p></div>
+                <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2" style={{background:'rgba(22,163,74,0.1)'}}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="app-text"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p className="app-text-secondary text-sm mb-1">CHK заработано</p><p className="text-green-600" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount * 1000}</p></div>
+            </div>
+        </div>
+    );
+}
 
     // MARKETPLACES
     function MarketplacesScreen({ onBack }) {
@@ -1371,6 +1399,7 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         const [referralStats] = useState({ referralsCount:0, cashback:0 });
         const tg = window.Telegram?.WebApp;
 const tgUser = tg?.initDataUnsafe?.user;
+const startParam = tg?.initDataUnsafe?.start_param;
 useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
@@ -1404,6 +1433,7 @@ useEffect(() => {
             if (data.cart) setCart(data.cart);
             if (data.orders) setOrders(data.orders);
         }
+        db.collection('users').doc(userId).set({ referralCode }, { merge: true });
         setUserDataLoaded(true);
     }).catch(() => setUserDataLoaded(true));
 }, [tgUser?.id]);
@@ -1414,6 +1444,25 @@ useEffect(() => {
             const urlParams = new URLSearchParams(window.location.search);
  if (tgUser?.id === 1910027948) {
     setIsAdmin(true);
+    if (startParam && tgUser && startParam !== referralCode) {
+    const db = window.__firebaseDb;
+    if (db) {
+        const inviterQuery = db.collection('users').where('referralCode', '==', startParam);
+        inviterQuery.get().then(snap => {
+            if (!snap.empty) {
+                const inviterDoc = snap.docs[0];
+                const inviterData = inviterDoc.data();
+                const alreadyReferrals = inviterData.referrals || [];
+                if (!alreadyReferrals.includes(tgUser.id.toString())) {
+                    inviterDoc.ref.update({
+                        referrals: [...alreadyReferrals, tgUser.id.toString()],
+                        chkCoins: (inviterData.chkCoins || 0) + 1000
+                    });
+                }
+            }
+        });
+    }
+}
 }
         }, []);
 
@@ -1505,4 +1554,3 @@ const createOrder = (items,total,dm) => {
 </script>
 </body>
 </html>
-
