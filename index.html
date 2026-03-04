@@ -29,6 +29,9 @@
         .dark-theme .checkout-modal .delivery-method-card { background-color: #13243a !important; color: #e8edf4 !important; border-color: #1e3a5f !important; }
         .dark-theme .checkout-modal .delivery-method-card.selected { background-color: #1e3a5f !important; border-color: #3b82f6 !important; }
         .dark-theme .address-suggestions { background-color: #13243a !important; border-color: #1e3a5f !important; }
+        .dark-theme .hover-item:hover { background-color: #1e3a5f !important; }
+.dark-theme svg { color: #e8edf4; stroke: #e8edf4; }
+.dark-theme .empty-icon svg { stroke: #8b9db5; }
         .app-bg { background-color: #f9fafb; min-height: 100vh; }
         .app-card { background-color: #ffffff; border-color: #e5e7eb; }
         .app-text { color: #111827; }
@@ -696,7 +699,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`}),()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru`);const d=await r.json();setFormData({...formData,deliveryAddress:d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
                                     {formData.showMap && <OSMMap onAddressSelected={addr=>setFormData({...formData,deliveryAddress:addr,showMap:false})} onClose={()=>setFormData({...formData,showMap:false})} />}
@@ -976,7 +979,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Мои заказы</h1></div>
                 {orders.length===0 ? (
-                    <div className="flex flex-col items-center justify-center py-20"><div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4"><PackageIcon /></div><p className="app-text-secondary">Нет заказов</p></div>
+                   <div className="flex flex-col items-center justify-center py-20"><div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><PackageIcon /></div><p className="app-text-secondary">Нет заказов</p></div>
                 ) : (
                     <div className="space-y-3">{orders.map(order=>(
                         <button key={order.id} onClick={()=>setSelected(order)} className="w-full app-card rounded-xl p-4 hover:shadow-md transition-all text-left">
@@ -1017,7 +1020,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Поддержка</h1></div>
                 <div className="app-card rounded-xl p-6 text-center mb-4">
-                    <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4"><MessageCircleIcon /></div>
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><MessageCircleIcon /></div>
                     <h2 className="app-text mb-2">Нужна помощь?</h2>
                     <p className="app-text-secondary mb-6">Свяжитесь с нами в Telegram</p>
                     <button onClick={()=>window.open('https://t.me/kanefix','_blank')} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"><SendIcon /><span>Написать @kanefix</span></button>
@@ -1050,8 +1053,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-2"><UsersIcon /></div><p className="app-text-secondary text-sm mb-1">Приглашено</p><p className="app-text" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount}</p></div>
-                    <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p className="app-text-secondary text-sm mb-1">Кешбек</p><p className="text-green-600" style={{fontSize:'1.5rem',fontWeight:600}}>${referralStats.cashback}</p></div>
+                    <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><UsersIcon /></div><p className="app-text-secondary text-sm mb-1">Приглашено</p><p className="app-text" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount}</p></div>
+                    <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2" style={{background:'rgba(22,163,74,0.1)'}}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="app-text"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p className="app-text-secondary text-sm mb-1">Кешбек</p><p className="text-green-600" style={{fontSize:'1.5rem',fontWeight:600}}>${referralStats.cashback}</p></div>
                 </div>
             </div>
         );
@@ -1296,7 +1299,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 </div>
                 <div className="app-card rounded-xl shadow-sm overflow-hidden">
                     {menuItems.map((item,i)=>(
-                        <button key={i} onClick={item.onClick} className="w-full flex items-center justify-between gap-4 p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors border-b app-border last:border-b-0">
+                       <button key={i} onClick={item.onClick} className="w-full flex items-center justify-between gap-4 p-4 hover-item transition-colors border-b app-border last:border-b-0">
                             <div className="flex items-center gap-4 flex-1">
                                 <item.icon />
                                 <span className="flex-1 app-text" style={{textAlign:'left'}}>{item.label}</span>
