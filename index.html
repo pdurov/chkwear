@@ -1171,12 +1171,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [gameState,setGameState]=useState('idle');
         const [playerHand,setPlayerHand]=useState([]);
         const [dealerHand,setDealerHand]=useState([]);
-        const [bet,setBet]=useState(10);
+        const [bet,setBet]=useState('');
         const createCard=()=>{const suits=['♠','♥','♦','♣'],vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];return{suit:suits[Math.floor(Math.random()*4)],value:vals[Math.floor(Math.random()*13)]};};
         const calcHand=hand=>{let v=0,a=0;hand.forEach(c=>{if(c.value==='A'){a++;v+=11;}else if(['J','Q','K'].includes(c.value))v+=10;else v+=parseInt(c.value);});while(v>21&&a>0){v-=10;a--;}return v;};
-        const startBJ=()=>{if(bet<10||bet>10000||bet%10!==0||bet>chkCoins)return;setChkCoins(p=>p-bet);setPlayerHand([createCard(),createCard()]);setDealerHand([createCard(),createCard()]);setGameState('playing');};
+        const startBJ=()=>{const betNum=parseInt(bet)||0;if(betNum<10||betNum>chkCoins)return;setBet(betNum);setChkCoins(p=>p-parseInt(bet));setPlayerHand([createCard(),createCard()]);setDealerHand([createCard(),createCard()]);setGameState('playing');};
         const hit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21)setGameState('lost');};
-        const stand=()=>{let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);const pv=calcHand(playerHand),dv=calcHand(d);if(dv>21||pv>dv){setGameState('won');setChkCoins(p=>p+bet*2);}else if(pv===dv){setGameState('push');setChkCoins(p=>p+bet);}else setGameState('lost');};
+        const stand=()=>{let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);const pv=calcHand(playerHand),dv=calcHand(d);if(dv>21||pv>dv){setGameState('won');setChkCoins(p=>p+parseInt(bet)*2);}else if(pv===dv){setGameState('push');setChkCoins(p=>p+parseInt(bet));}else setGameState('lost');};
         const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);};
 
         const convertToDiscount=()=>{
