@@ -1202,7 +1202,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 {gameState==='idle'&&(<div className="space-y-4">
                     <div>
     <label className="block app-text mb-2">Ставка (от 10 CHK):</label>
-    <input type="number" value={bet} onChange={e=>setBet(parseInt(e.target.value)||0)} min="10" placeholder="Введите ставку" className="app-card app-text app-border w-full p-3 rounded-xl mb-2" style={{fontSize:'1.2rem'}} />
+    <input type="number" value={bet} onChange={e=>setBet(e.target.value)} min="10" placeholder="Введите ставку" className="app-card app-text app-border w-full p-3 rounded-xl mb-2" style={{fontSize:'1.2rem'}} />
     <div className="flex gap-2">
         {[10,50,100,500,1000].map(v=>(
             <button key={v} onClick={()=>setBet(v)} className="flex-1 py-2 rounded-xl text-sm app-card app-text app-border hover:bg-blue-600 hover:text-white transition-colors">{v}</button>
