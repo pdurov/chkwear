@@ -1335,8 +1335,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     function App() {
         const [activeScreen, setActiveScreen] = useState('home');
         const [favorites, setFavorites] = useState([]);
-        const [cart, setCart] = useState([]);
-        const [orders, setOrders] = useState([]);
+const [cart, setCart] = useState([]);
+const [orders, setOrders] = useState([]);
+const [userDataLoaded, setUserDataLoaded] = useState(false);
         const [theme, setTheme] = useState('light');
         const [isAdmin, setIsAdmin] = useState(false);
         const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
@@ -1374,6 +1375,22 @@ useEffect(() => {
         return () => window.removeEventListener('firebaseReady', handler);
     }
 }, []);
+
+useEffect(() => {
+    const db = window.__firebaseDb;
+    if (!db || !tgUser?.id) return;
+    const userId = tgUser.id.toString();
+    db.collection('users').doc(userId).get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.favorites) setFavorites(data.favorites);
+            if (data.cart) setCart(data.cart);
+            if (data.orders) setOrders(data.orders);
+        }
+        setUserDataLoaded(true);
+    }).catch(() => setUserDataLoaded(true));
+}, [tgUser?.id]);
+
         useEffect(() => {
             const saved = localStorage.getItem('theme');
             if (saved) setTheme(saved);
@@ -1393,11 +1410,49 @@ useEffect(() => {
             try { localStorage.setItem('chkwearProducts', JSON.stringify(products)); } catch(e) { console.error(e); }
         }, [products]);
 
-        const addToFavorites = p => { if(!favorites.find(x=>x.id===p.id)) setFavorites(prev=>[...prev,p]); };
-        const removeFromFavorites = id => setFavorites(prev=>prev.filter(p=>p.id!==id));
-        const addToCart = (p,mp,fp) => setCart(prev=>[...prev,{...p,marketplace:mp,finalPrice:fp}]);
-        const removeFromCart = (id,mp) => setCart(prev=>{ const i=prev.findIndex(p=>p.id===id&&p.marketplace===mp); if(i===-1)return prev; const n=[...prev]; n.splice(i,1); return n; });
-        const createOrder = (items,total,dm) => { setOrders(prev=>[{id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm},...prev]); setCart([]); };
+        const saveUserData = (newFavorites, newCart, newOrders) => {
+    const db = window.__firebaseDb;
+    if (!db || !tgUser?.id) return;
+    const userId = tgUser.id.toString();
+    db.collection('users').doc(userId).set({
+        favorites: newFavorites,
+        cart: newCart,
+        orders: newOrders
+    });
+};
+
+const addToFavorites = p => {
+    if(!favorites.find(x=>x.id===p.id)) {
+        const newFav = [...favorites, p];
+        setFavorites(newFav);
+        saveUserData(newFav, cart, orders);
+    }
+};
+const removeFromFavorites = id => {
+    const newFav = favorites.filter(p=>p.id!==id);
+    setFavorites(newFav);
+    saveUserData(newFav, cart, orders);
+};
+const addToCart = (p,mp,fp) => {
+    const newCart = [...cart, {...p,marketplace:mp,finalPrice:fp}];
+    setCart(newCart);
+    saveUserData(favorites, newCart, orders);
+};
+const removeFromCart = (id,mp) => {
+    const newCart = cart.filter((p,i,arr) => {
+        const idx = arr.findIndex(x=>x.id===id&&x.marketplace===mp);
+        return i !== idx;
+    });
+    setCart(newCart);
+    saveUserData(favorites, newCart, orders);
+};
+const createOrder = (items,total,dm) => {
+    const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm};
+    const newOrders = [newOrder, ...orders];
+    setOrders(newOrders);
+    setCart([]);
+    saveUserData(favorites, [], newOrders);
+};
 
         return (
             <div className="min-h-screen app-bg pb-20">
