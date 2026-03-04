@@ -639,7 +639,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="modal-overlay checkout-modal" onClick={step==='success'?handleFinalClose:onClose}>
                 <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem',backgroundColor:theme==='dark'?'#13243a':'white'}}>
-                        <h2 className="app-text">{step==='delivery'?'Данные доставки':step==='payment'?'Оплата':'Заказ оформлен'}</h2>
+                        <h2 className="app-text">{step==='delivery'?'Данные доставки':step==='payment'?'Продолжить':'Заказ оформлен'}</h2>
                         <button onClick={step==='success'?handleFinalClose:onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6">
@@ -1505,3 +1505,4 @@ const createOrder = (items,total,dm) => {
 </script>
 </body>
 </html>
+
