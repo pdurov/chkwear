@@ -1107,6 +1107,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [activeTab, setActiveTab] = useState('main');
         const [spinResult, setSpinResult] = useState(null);
         const [isSpinning, setIsSpinning] = useState(false);
+        const [lastSpinTime, setLastSpinTime] = useState(()=>parseInt(localStorage.getItem('lastSpinTime')||'0'));
+        const canSpin = Date.now() - lastSpinTime > 24*60*60*1000;
+        const timeUntilSpin = () => {
+            const ms = 24*60*60*1000 - (Date.now() - lastSpinTime);
+            const h = Math.floor(ms/3600000);
+            const m = Math.floor((ms%3600000)/60000);
+            return `${h}ч ${m}м`;
+        };
         const [wheelPosition, setWheelPosition] = useState(0);
         const [selectedPrize, setSelectedPrize] = useState(null);
         const [notification, setNotification] = useState(null);
@@ -1126,8 +1134,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         useEffect(()=>{localStorage.setItem('chkCoins',chkCoins.toString())},[chkCoins]);
 
-        const spinWheel = () => {
-            if (isSpinning) return;
+       const spinWheel = () => {
+            if (isSpinning || !canSpin) return; 
             setIsSpinning(true); setSpinResult(null); setSelectedPrize(null);
             const weights=[0.40,0.25,0.20,0.10,0.04,0.009,0.001,0.0001];
             const rand=Math.random(); let cum=0, idx=0;
@@ -1148,6 +1156,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         localStorage.setItem('promoCodes',JSON.stringify(pc));
                     } else { setChkCoins(p=>p+prize.amount); }
                     setIsSpinning(false);
+                    const now = Date.now();
+                    setLastSpinTime(now);
+                    localStorage.setItem('lastSpinTime', now.toString());
                     setTimeout(()=>{setWheelPosition(0);setSelectedPrize(null);setSpinResult(null);},1000);
                 },500);
             },10);
@@ -1222,9 +1233,13 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             </div>
                         </div>
                         {spinResult&&<div className="rounded-xl p-3 mb-3 text-center" style={{backgroundColor:spinResult.color,color:'white'}}><p className="font-bold">🎉 Выиграли {spinResult.value}!</p></div>}
-                        <button onClick={spinWheel} disabled={isSpinning} className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            {isSpinning?<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Крутим...</span></>:'🎰 Крутить'}
-                        </button>
+                       <button onClick={spinWheel} disabled={isSpinning || !canSpin} className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+    {isSpinning
+        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Крутим...</span></>
+        : !canSpin
+            ? `⏳ Следующий спин через ${timeUntilSpin()}`
+            : '🎰 Крутить'}
+</button> 
                     </div>
                     <button onClick={()=>setActiveTab('blackjack')} className="w-full app-card rounded-xl p-4 hover:bg-gray-50 transition-colors text-left"><h3 className="app-text mb-1">🃏 Блэкджек</h3><p className="app-text-secondary text-sm">Ставка 10–10000 CHK</p></button>
                     <div className="app-card rounded-xl p-4">
