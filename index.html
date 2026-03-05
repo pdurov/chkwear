@@ -1517,7 +1517,6 @@ const removeFromCart = (id,mp) => {
     saveUserData(favorites, newCart, orders);
 };
 const createOrder = async (items, total, dm, address, comment) => {
-    console.log('createOrder вызван!', new Error().stack);
     const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm,address,comment};
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
@@ -1575,3 +1574,4 @@ const createOrder = async (items, total, dm, address, comment) => {
 </script>
 </body>
 </html>
+
