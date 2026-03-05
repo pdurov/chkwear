@@ -1539,17 +1539,25 @@ const createOrder = async (items, total, dm, address, comment) => {
     saveUserData(favorites, [], newOrders);
 
    try {
-        const params = new URLSearchParams({
-            items: JSON.stringify(items),
-            total,
-            deliveryMethod: dm,
-            address: address || 'не указан',
-            comment: comment || 'нет',
-            userName: tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно',
-            userId: tgUser?.id || 'неизвестно'
-        });
-        await fetch(`https://chkwear-bot.external-all666.workers.dev/?${params}`);
-    } catch(e) { console.error('Ошибка отправки заказа:', e); }
+    const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
+    const ADMIN_ID = '7764829776';
+    const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice} (${i.marketplace||''})`).join('\n');
+    const userName = tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно';
+    const msgText = `🛍 Новый заказ!\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${total}\n🚚 Доставка: ${dm}\n📍 Адрес: ${address || 'не указан'}\n📝 Комментарий: ${comment || 'нет'}\n\n👤 Покупатель: ${userName}\n🆔 ID: ${tgUser?.id || 'неизвестно'}`;
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: ADMIN_ID,
+            text: msgText,
+            reply_markup: {
+                inline_keyboard: [[
+                    { text: '💬 Написать покупателю', url: `tg://user?id=${tgUser?.id}` }
+                ]]
+            }
+        })
+    });
+} catch(e) { console.error('Ошибка отправки заказа:', e); }
 };
 
         return (
