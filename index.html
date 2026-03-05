@@ -1538,6 +1538,7 @@ const createOrder = async (items, total, dm, address, comment) => {
     setCart([]);
     saveUserData(favorites, [], newOrders);
 
+   alert('createOrder called, tgUser: ' + JSON.stringify(tgUser) + ', items: ' + items.length);
    try {
     const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
     const ADMIN_ID = '7764829776';
