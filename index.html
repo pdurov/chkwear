@@ -1499,15 +1499,18 @@ useEffect(() => {
     const db = window.__firebaseDb;
     if (!db || !tgUser?.id) return;
     const userId = tgUser.id.toString();
+    const clean = obj => JSON.parse(JSON.stringify(obj, (k, v) => v === undefined ? null : v));
     const strip = items => items.map(p => {
         const { imageUrl, images, ...rest } = p;
-        return JSON.parse(JSON.stringify(rest, (k, v) => v === undefined ? null : v));
+        return clean(rest);
     });
-    db.collection('users').doc(userId).set({
-        favorites: strip(newFavorites),
-        cart: strip(newCart),
-        orders: newOrders.map(o => ({ ...o, items: strip(o.items) }))
-    });
+    try {
+        db.collection('users').doc(userId).set({
+            favorites: strip(newFavorites),
+            cart: strip(newCart),
+            orders: clean(newOrders.map(o => ({ ...o, items: strip(o.items) })))
+        });
+    } catch(e) { console.error('saveUserData error:', e); }
 };
 
 const addToFavorites = p => {
