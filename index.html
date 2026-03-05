@@ -748,7 +748,7 @@ onClose();
                                 {!promoApplied&&<div className="app-card rounded-xl p-4"><label className="block app-text mb-2">Промокод:</label><div className="flex gap-2"><input value={promoCode} onChange={e=>setPromoCode(e.target.value)} className="flex-1 app-border app-card app-text" placeholder="Введите код" /><button onClick={applyPromoCode} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700">Применить</button></div></div>}
                                 {chkDiscountsList.length>0&&!selectedChkDiscount&&<div className="app-card rounded-xl p-4"><label className="block app-text mb-2">Скидки CHKGame:</label><div className="space-y-2">{chkDiscountsList.map(d=><button key={d.id} onClick={()=>{setSelectedChkDiscount(d.id);setChkDiscount(Math.min(d.percent,100));setNotification(`Скидка ${Math.min(d.percent,100)}% применена!`)}} className="w-full bg-green-50 border border-green-500 text-green-700 py-3 px-4 rounded-xl hover:bg-green-100">Скидка {Math.min(d.percent,100)}%</button>)}</div></div>}
                                 {selectedChkDiscount&&<div className="bg-green-50 rounded-xl p-4 flex items-center justify-between"><p className="text-green-700 font-bold">CHK -{chkDiscount}% применена</p><button onClick={()=>{setSelectedChkDiscount(null);setChkDiscount(0)}} className="text-red-500">Убрать</button></div>}
-                                <button onClick={()=>setStep('success')} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Оплатить</button>
+                                <button onClick={()=>setStep('success')} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Продолжить</button>
                             </div>
                         )}
                         {step==='success' && (
@@ -1517,6 +1517,7 @@ const removeFromCart = (id,mp) => {
     saveUserData(favorites, newCart, orders);
 };
 const createOrder = async (items, total, dm, address, comment) => {
+    console.log('createOrder вызван!', new Error().stack);
     const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm,address,comment};
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
