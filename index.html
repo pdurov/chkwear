@@ -1499,10 +1499,14 @@ useEffect(() => {
     const db = window.__firebaseDb;
     if (!db || !tgUser?.id) return;
     const userId = tgUser.id.toString();
+    const strip = items => items.map(p => {
+        const { imageUrl, images, ...rest } = p;
+        return JSON.parse(JSON.stringify(rest, (k, v) => v === undefined ? null : v));
+    });
     db.collection('users').doc(userId).set({
-        favorites: newFavorites,
-        cart: newCart,
-        orders: newOrders
+        favorites: strip(newFavorites),
+        cart: strip(newCart),
+        orders: newOrders.map(o => ({ ...o, items: strip(o.items) }))
     });
 };
 
