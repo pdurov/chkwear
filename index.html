@@ -10,6 +10,21 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
+    authDomain: "chkwear-1f9b7.firebaseapp.com",
+    projectId: "chkwear-1f9b7",
+    storageBucket: "chkwear-1f9b7.firebasestorage.app",
+    messagingSenderId: "773316792812",
+    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
+  });
+  const db = firebase.firestore();
+  window.__firebaseDb = db;
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f9fafb; color: #111827; }
@@ -1553,21 +1568,6 @@ const createOrder = async (items, total, dm, address, comment) => {
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
-</script>
-<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
-<script>
-  firebase.initializeApp({
-    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
-    authDomain: "chkwear-1f9b7.firebaseapp.com",
-    projectId: "chkwear-1f9b7",
-    storageBucket: "chkwear-1f9b7.firebasestorage.app",
-    messagingSenderId: "773316792812",
-    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
-  });
-  const db = firebase.firestore();
-  window.__firebaseDb = db;
-  window.dispatchEvent(new Event('firebaseReady'));
 </script>
 </body>
 </html>
