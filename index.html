@@ -727,7 +727,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                     </div>}
                                     <div><label className="block app-text mb-2">Примечание</label><textarea value={formData.meetingNote||''} onChange={e=>setFormData({...formData,meetingNote:e.target.value})} className="app-card app-text app-border" rows="3" placeholder="Дополнительно" /></div>
                                 </>)}
-                                <button onClick={()=>{if(validate())setStep('payment')}} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Продолжить к оплате</button>
+                                <button onClick={()=>{if(validate())setStep('payment')}} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Продолжить</button>
                             </div>
                         )}
                         {step==='payment' && (
