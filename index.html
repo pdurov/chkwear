@@ -1523,20 +1523,17 @@ const createOrder = async (items, total, dm, address, comment) => {
     setCart([]);
     saveUserData(favorites, [], newOrders);
 
-    try {
-        await fetch('https://chkwear-bot.external-all666.workers.dev/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                items,
-                total,
-                deliveryMethod: dm,
-                address: address || 'не указан',
-                comment: comment || 'нет',
-                userName: tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно',
-                userId: tgUser?.id || 'неизвестно'
-            })
+   try {
+        const params = new URLSearchParams({
+            items: JSON.stringify(items),
+            total,
+            deliveryMethod: dm,
+            address: address || 'не указан',
+            comment: comment || 'нет',
+            userName: tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно',
+            userId: tgUser?.id || 'неизвестно'
         });
+        await fetch(`https://chkwear-bot.external-all666.workers.dev/?${params}`);
     } catch(e) { console.error('Ошибка отправки заказа:', e); }
 };
 
@@ -1574,4 +1571,3 @@ const createOrder = async (items, total, dm, address, comment) => {
 </script>
 </body>
 </html>
-
