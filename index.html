@@ -618,8 +618,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 const d = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
                 localStorage.setItem('chkDiscounts', JSON.stringify(d.map(x=>x.id===selectedChkDiscount?{...x,used:true}:x)));
             }
-            onSuccess({europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod]);
-            onClose();
+           onSuccess(
+    {europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod],
+    formData.deliveryAddress,
+    formData.comment
+);
+onClose();
         };
 
         const today=new Date(), tomorrow=new Date(today), dayAfter=new Date(today);
@@ -951,7 +955,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         <button onClick={()=>setIsCheckoutOpen(true)} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Оформить заказ</button>
                     </div>
                 </>)}
-                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm)=>{createOrder(cart,total,dm);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
+                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm,address,comment)=>{createOrder(cart,total,dm,address,comment);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
                 {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
             </div>
         );
@@ -1512,12 +1516,28 @@ const removeFromCart = (id,mp) => {
     setCart(newCart);
     saveUserData(favorites, newCart, orders);
 };
-const createOrder = (items,total,dm) => {
-    const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm};
+const createOrder = async (items, total, dm, address, comment) => {
+    const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm,address,comment};
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
     setCart([]);
     saveUserData(favorites, [], newOrders);
+
+    try {
+        await fetch('https://chkwear-bot.external-all666.workers.dev/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items,
+                total,
+                deliveryMethod: dm,
+                address: address || 'не указан',
+                comment: comment || 'нет',
+                userName: tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно',
+                userId: tgUser?.id || 'неизвестно'
+            })
+        });
+    } catch(e) { console.error('Ошибка отправки заказа:', e); }
 };
 
         return (
