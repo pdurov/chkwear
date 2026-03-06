@@ -1197,6 +1197,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     
     const shareLink = () => {
         const tg = window.Telegram?.WebApp;
+        tg?.expand();
         if (tg) {
             tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`);
         } else {
@@ -1817,3 +1818,4 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
 </script>
 </body>
 </html>
+
