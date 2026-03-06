@@ -636,7 +636,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
            onSuccess(
     {europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod],
     formData.deliveryAddress,
-    formData.comment
+    formData.meetingNote || '',
+    parseFloat((subtotal + deliveryCost).toFixed(2))
 );
 onClose();
         };
@@ -970,7 +971,7 @@ onClose();
                         <button onClick={()=>setIsCheckoutOpen(true)} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Оформить заказ</button>
                     </div>
                 </>)}
-                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm,address,comment)=>{createOrder(cart,total,dm,address,comment);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
+                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm,address,comment,finalTotal)=>{createOrder(cart,total,dm,address,comment,finalTotal);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
                 {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
             </div>
         );
@@ -1538,7 +1539,7 @@ const removeFromCart = (id,mp) => {
     setCart(newCart);
     saveUserData(favorites, newCart, orders);
 };
-const createOrder = async (items, total, dm, address, comment) => {
+const createOrder = async (items, total, dm, address, comment, finalTotal) => {
     const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm,address,comment};
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
@@ -1550,10 +1551,10 @@ const createOrder = async (items, total, dm, address, comment) => {
     alert('Шаг 1: начало отправки');
     const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
     const ADMIN_ID = '7764829776';
-    const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice} (${i.marketplace||''})`).join('\n');
+    const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice}${i.condition==='new' ? ` (${i.marketplace})` : ' (Used)'}`).join('\n');
     const userName = tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно';
     alert('Шаг 2: userName=' + userName + ', items=' + items.length);
-    const msgText = `🛍 Новый заказ!\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${total}\n🚚 Доставка: ${dm}\n📍 Адрес: ${address || 'не указан'}\n📝 Комментарий: ${comment || 'нет'}\n\n👤 Покупатель: ${userName}\n🆔 ID: ${tgUser?.id || 'неизвестно'}`;
+    const msgText = `🛍 Новый заказ!\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal || total}\n🚚 Доставка: ${dm}\n📍 Адрес: ${address || 'не указан'}\n📝 Комментарий: ${comment || 'нет'}\n\n👤 Покупатель: ${userName}\n🆔 ID: ${tgUser?.id || 'неизвестно'}`;
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
