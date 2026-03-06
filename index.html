@@ -176,8 +176,9 @@
 
     const initialProducts = [];
     const CATEGORIES = [
-        { id:'all', name:'All' }, { id:'sneakers', name:'Sneakers' }, { id:'longsleeve', name:'Longsleeve' },
-        { id:'hoodie', name:'Hoodie' }, { id:'jeans', name:'Jeans' }, { id:'shorts', name:'Shorts' },
+        { id:'all', name:'All' }, { id:'sneakers', name:'Sneakers' }, { id:'tshirt', name:'T-Shirt' },
+        { id:'longsleeve', name:'Longsleeve' }, { id:'hoodie', name:'Hoodie' }, { id:'jacket', name:'Jacket' },
+        { id:'jeans', name:'Jeans' }, { id:'shorts', name:'Shorts' },
     ];
 
     // ICONS
@@ -291,10 +292,31 @@
     }
 
     // ADMIN PANEL
-    function AdminPanel({ isOpen, onClose, products, onAddProduct, onDeleteProduct }) {
+    function AdminPanel({ isOpen, onClose, products, onAddProduct, onDeleteProduct, showTabs }) {
+        const [activeTab, setActiveTab] = useState(showTabs ? 'menu' : 'products');
         const [newProduct, setNewProduct] = useState({ name:'', category:'sneakers', condition:'new', imageUrl:'', description:'', poizonPrice:'', taobaoPrice:'', price:'' });
         const [uploadedImages, setUploadedImages] = useState([]);
         const [notification, setNotification] = useState(null);
+        const [transferUsername, setTransferUsername] = useState('');
+        const [transferAmount, setTransferAmount] = useState('');
+
+        const handleTransfer = async () => {
+            if (!transferUsername.trim()) { setNotification('Введите юзернейм'); return; }
+            const amount = parseInt(transferAmount);
+            if (!amount || amount <= 0) { setNotification('Введите сумму'); return; }
+            const db = window.__firebaseDb;
+            if (!db) { setNotification('Firebase недоступен'); return; }
+            const username = transferUsername.replace('@','').trim();
+            try {
+                const snap = await db.collection('users').where('username','==',username).get();
+                if (snap.empty) { setNotification('Пользователь не найден'); return; }
+                const userDoc = snap.docs[0];
+                const current = userDoc.data().chkCoins || 0;
+                await userDoc.ref.update({ chkCoins: current + amount });
+                setNotification(`✅ Отправлено ${amount} CHK → @${username}`);
+                setTransferUsername(''); setTransferAmount('');
+            } catch(e) { setNotification('Ошибка: ' + e.message); }
+        };
 
         const handleImageUpload = (e) => {
             const files = Array.from(e.target.files);
@@ -352,10 +374,51 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         };
 
         if (!isOpen) return null;
+
+        if (activeTab === 'menu') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <h2 className="app-text">Панель администратора</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-3">
+                        <button onClick={()=>setActiveTab('products')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">📦 Управление товарами</h3>
+                            <p className="app-text-secondary text-sm">Добавить, удалить товары</p>
+                        </button>
+                        <button onClick={()=>setActiveTab('transfer')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">💰 Перевод CHK</h3>
+                            <p className="app-text-secondary text-sm">Отправить CHKCoins пользователю по юзернейму</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        if (activeTab === 'transfer') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Перевод CHK</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div><label className="block app-text mb-2">Юзернейм получателя</label><input value={transferUsername} onChange={e=>setTransferUsername(e.target.value)} className="app-card app-text app-border" placeholder="@username" /></div>
+                        <div><label className="block app-text mb-2">Количество CHK</label><input type="number" value={transferAmount} onChange={e=>setTransferAmount(e.target.value)} className="app-card app-text app-border" placeholder="1000" /></div>
+                        <button onClick={handleTransfer} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Отправить</button>
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
         return (
             <div className="admin-modal" onClick={onClose}>
                 <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        {showTabs ? <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button> : <div/>}
                         <h2 className="app-text">Панель администратора</h2>
                         <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
@@ -365,7 +428,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <div><label className="block app-text mb-2">Название *</label><input type="text" value={newProduct.name} onChange={e=>setNewProduct({...newProduct,name:e.target.value})} className="app-card app-text app-border" placeholder="Nike Air Max" /></div>
                             <div><label className="block app-text mb-2">Категория</label>
                                 <select value={newProduct.category} onChange={e=>setNewProduct({...newProduct,category:e.target.value})} className="app-card app-text app-border">
-                                    <option value="sneakers">Sneakers</option><option value="hoodie">Hoodie</option><option value="longsleeve">Longsleeve</option><option value="jeans">Jeans</option><option value="shorts">Shorts</option>
+                                    <option value="sneakers">Sneakers</option><option value="tshirt">T-Shirt</option><option value="hoodie">Hoodie</option><option value="longsleeve">Longsleeve</option><option value="jacket">Jacket</option><option value="jeans">Jeans</option><option value="shorts">Shorts</option>
                                 </select>
                             </div>
                             <div><label className="block app-text mb-2">Состояние</label>
@@ -1160,7 +1223,9 @@ onClose();
 
     // CHK GAME
     function CHKGame({ onBack }) {
-        const [chkCoins, setChkCoins] = useState(()=>parseInt(localStorage.getItem('chkCoins')||'0'));
+        const ADMIN_ID_CHK = 1910027948;
+        const isAdminUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.id === ADMIN_ID_CHK;
+        const [chkCoins, setChkCoins] = useState(()=> isAdminUser ? Infinity : parseInt(localStorage.getItem('chkCoins')||'0'));
         const [activeTab, setActiveTab] = useState('main');
         const [spinResult, setSpinResult] = useState(null);
         const [isSpinning, setIsSpinning] = useState(false);
@@ -1189,7 +1254,7 @@ onClose();
             {id:8,value:'Скидка 50$',amount:0,special:true,color:'#fbbf24',emoji:'🎁'},
         ];
 
-        useEffect(()=>{localStorage.setItem('chkCoins',chkCoins.toString())},[chkCoins]);
+        useEffect(()=>{ if(chkCoins !== Infinity) localStorage.setItem('chkCoins',chkCoins.toString()) },[chkCoins]);
 
        const spinWheel = () => {
             if (isSpinning || !canSpin) return; 
@@ -1406,6 +1471,7 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         const [theme, setTheme] = useState('light');
         const [isAdmin, setIsAdmin] = useState(false);
         const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+        const [adminPanelFromProfile, setAdminPanelFromProfile] = useState(false);
         const [products, setProducts] = useState(() => {
     try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
 });
@@ -1453,7 +1519,7 @@ useEffect(() => {
             if (data.cart) setCart(data.cart);
             if (data.orders) setOrders(data.orders);
         }
-        db.collection('users').doc(userId).set({ referralCode }, { merge: true });
+        db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
         setUserDataLoaded(true);
     }).catch(() => setUserDataLoaded(true));
 }, [tgUser?.id]);
@@ -1572,13 +1638,13 @@ const createOrder = async (items, total, dm, address, comment, finalTotal) => {
         return (
             <div className="min-h-screen app-bg pb-20">
                 <div className="container">
-                    {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} />}
+                    {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} />}
                     {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} />}
                     {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} />}
-                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>setIsAdminPanelOpen(true)} tgUser={tgUser} />}
+                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} />}
                 </div>
                 <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
-                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
+                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
     }
