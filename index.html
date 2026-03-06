@@ -11,18 +11,23 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-      // Set top padding based on Telegram safe area
-      function applyTgSafeArea() {
-        const tg = window.Telegram?.WebApp;
+      function applyTgPadding() {
+        window.applyTgPadding = applyTgPadding;
+        var tg = window.Telegram && window.Telegram.WebApp;
         if (!tg) return;
-        const top = tg.contentSafeAreaInset?.top ?? tg.safeAreaInset?.top ?? 0;
-        document.documentElement.style.setProperty('--tg-top', top + 'px');
-        document.querySelectorAll('.tg-header-safe').forEach(el => {
-          el.style.paddingTop = (top + 8) + 'px';
-        });
+        var top = 0;
+        if (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) top = tg.contentSafeAreaInset.top;
+        else if (tg.safeAreaInset && tg.safeAreaInset.top) top = tg.safeAreaInset.top;
+        if (top > 0) {
+          document.getElementById('root').style.paddingTop = top + 'px';
+        }
       }
-      window.addEventListener('load', applyTgSafeArea);
-      document.addEventListener('DOMContentLoaded', applyTgSafeArea);
+      // Try immediately and after delays
+      document.addEventListener('DOMContentLoaded', applyTgPadding);
+      window.addEventListener('load', applyTgPadding);
+      setTimeout(applyTgPadding, 100);
+      setTimeout(applyTgPadding, 500);
+      setTimeout(applyTgPadding, 1000);
     </script>
     <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
@@ -1205,14 +1210,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         if (reviewOrder) return (
             <div className="p-4">
-                <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setReviewText('');setReviewRating(5);if(reviewSent)setSelected(s=>({...s,reviewLeft:true}));}} className="mb-6 app-text hover:text-blue-600">← Назад</button>
+                <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setReviewText('');setReviewRating(5);if(reviewSent)setSelected(s=>s?{...s,reviewLeft:true}:s);}} className="mb-6 app-text hover:text-blue-600">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Оставить отзыв</h1><p className="app-text-secondary text-sm mt-1">{reviewOrder.displayId||reviewOrder.id}</p></div>
                 {reviewSent ? (
                     <div className="text-center py-10">
                         <div style={{fontSize:'3rem'}} className="mb-4">🙏</div>
                         <h2 className="app-text mb-2">Спасибо за отзыв!</h2>
                         <p className="app-text-secondary">Ваше мнение очень важно для нас.</p>
-                        <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setSelected(s=>({...s,reviewLeft:true}));}} className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-xl">Готово</button>
+                        <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setSelected(s=>s?{...s,reviewLeft:true}:s);}} className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-xl">Готово</button>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -1791,8 +1796,11 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         });
         const [referralStats] = useState({ referralsCount:0, cashback:0 });
         const tg = window.Telegram?.WebApp;
-        if (tg) { tg.expand(); tg.requestFullscreen?.(); }
-        const topInset = tg?.contentSafeAreaInset?.top ?? tg?.safeAreaInset?.top ?? 0;
+        if (tg) { 
+          tg.expand(); 
+          tg.requestFullscreen?.();
+          setTimeout(() => window.applyTgPadding?.(), 300);
+        }
 const tgUser = tg?.initDataUnsafe?.user;
 const startParam = tg?.initDataUnsafe?.start_param;
 useEffect(() => {
@@ -2001,7 +2009,7 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
 };
 
         return (
-            <div className="min-h-screen app-bg pb-20" style={{paddingTop: topInset + 'px'}}>
+            <div className="min-h-screen app-bg pb-20">
                 <div className="container">
                     {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} />}
                     {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} />}
