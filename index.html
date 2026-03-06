@@ -310,9 +310,19 @@
             if (!db) { setNotification('Firebase недоступен'); return; }
             const username = transferUsername.replace('@','').trim();
             try {
-                const snap = await db.collection('users').where('username','==',username).get();
-                if (snap.empty) { setNotification('Пользователь не найден'); return; }
-                const userDoc = snap.docs[0];
+                // Try by username field first
+                let userDoc = null;
+                const snap = await db.collection('users').get();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.username && d.username.toLowerCase() === username.toLowerCase()) userDoc = doc;
+                });
+                // Try by doc ID (numeric user id) if username starts with digits
+                if (!userDoc && /^\d+$/.test(username)) {
+                    const byId = await db.collection('users').doc(username).get();
+                    if (byId.exists) userDoc = byId;
+                }
+                if (!userDoc) { setNotification('Пользователь не найден. Убедитесь что юзер открывал приложение.'); return; }
                 const current = userDoc.data().chkCoins || 0;
                 await userDoc.ref.update({ chkCoins: current + amount });
                 setNotification(`✅ Отправлено ${amount} CHK → @${username}`);
@@ -582,7 +592,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             </div>
                         )}
                         <div className="mb-6"><p className="app-text-secondary mb-2">Цена:</p><p className="price-display" style={{fontSize:'2rem'}}>${finalPrice}</p></div>
-                        {product.description && <div className="mb-6"><p className="app-text-secondary mb-2">Описание:</p><p className="app-text">{product.description}</p></div>}
+                        {product.description && <div className="mb-6"><p className="app-text-secondary mb-2">Описание:</p><p className="app-text" style={{whiteSpace:'pre-wrap'}}>{product.description}</p></div>}
                         <div className="flex gap-3">
                             <button onClick={()=>{onClose();setTimeout(()=>onAddToFavorites(product.id),150)}} className="flex-1 app-card app-text border-2 app-border py-4 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                                 <HeartIcon /><span>В избранное</span>
@@ -699,7 +709,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 localStorage.setItem('chkDiscounts', JSON.stringify(d.map(x=>x.id===selectedChkDiscount?{...x,used:true}:x)));
             }
             const dm = {europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod];
-            // Build full delivery info string
             let deliveryDetails = '';
             if (formData.deliveryMethod==='europost') {
                 deliveryDetails = `Отделение: ${formData.europostOffice||''} | ФИО: ${formData.europostName||''} | Тел: ${formData.europostPhone||''}`;
@@ -708,10 +717,13 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             } else if (formData.deliveryMethod==='sdek') {
                 deliveryDetails = `Адрес: ${formData.sdekAddress||''} | ФИО: ${formData.sdekName||''} | Тел: ${formData.sdekPhone||''}`;
             } else if (formData.deliveryMethod==='meeting') {
-                deliveryDetails = formData.deliveryAddress || '';
+                const typeLabels = {pickup_piramida:'Самовывоз Пирамида',pickup_mak:'Самовывоз Мак',pickup_trio:'Самовывоз Трио',delivery_day:'Доставка днём',delivery_evening:'Доставка вечером'};
+                const typeLabel = typeLabels[formData.deliveryType] || formData.deliveryType || '';
+                deliveryDetails = `Имя: ${formData.meetingName||''} | Способ: ${typeLabel} | День: ${formData.deliveryDay||''} | Время: ${formData.deliveryTime||''}${formData.deliveryAddress?' | Адрес: '+formData.deliveryAddress:''}`;
             }
             const comment = formData.meetingNote || '';
-            onSuccess(dm, deliveryDetails, comment, parseFloat((subtotal + deliveryCost).toFixed(2)));
+            const discountInfo = chkDiscount > 0 ? `CHK скидка ${chkDiscount}%` : '';
+            onSuccess(dm, deliveryDetails, comment, parseFloat((subtotal + deliveryCost).toFixed(2)), discountInfo);
             onClose();
         };
 
@@ -1044,7 +1056,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         <button onClick={()=>setIsCheckoutOpen(true)} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Оформить заказ</button>
                     </div>
                 </>)}
-                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm,address,comment,finalTotal)=>{createOrder(cart,total,dm,address,comment,finalTotal);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
+                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm,address,comment,finalTotal,discountInfo)=>{createOrder(cart,total,dm,address,comment,finalTotal,discountInfo);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
                 {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
             </div>
         );
@@ -1666,7 +1678,7 @@ const removeFromCart = (id,mp) => {
     setCart(newCart);
     saveUserData(favorites, newCart, orders);
 };
-const createOrder = async (items, total, dm, address, comment, finalTotal) => {
+const createOrder = async (items, total, dm, address, comment, finalTotal, discountInfo) => {
     const orderId = `ORD-${Date.now()}`;
     const newOrder = {id:orderId, date:new Date().toLocaleDateString('ru-RU'), items:[...items], total, finalTotal: finalTotal||total, status:'pending', deliveryMethod:dm, address, comment};
     const newOrders = [newOrder, ...orders];
@@ -1674,7 +1686,6 @@ const createOrder = async (items, total, dm, address, comment, finalTotal) => {
     setCart([]);
     saveUserData(favorites, [], newOrders);
 
-    // Save order to Firebase for status sync
     const db = window.__firebaseDb;
     if (db && tgUser?.id) {
         db.collection('orders').doc(orderId).set({
@@ -1691,7 +1702,8 @@ const createOrder = async (items, total, dm, address, comment, finalTotal) => {
         const ADMIN_ID = '7764829776';
         const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice}${i.condition==='new' ? ` (${i.marketplace})` : ' (Used)'}`).join('\n');
         const userName = tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно';
-        const msgText = `🛍 Новый заказ! #${orderId}\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal||total}\n🚚 Доставка: ${dm}\n📋 Детали: ${address||'не указан'}\n📝 Комментарий: ${comment||'нет'}\n\n👤 Покупатель: ${userName}${tgUser?.username?' (@'+tgUser.username+')':''}\n🆔 ID: ${tgUser?.id||'неизвестно'}`;
+        const discountLine = discountInfo ? `\n🎟 Скидка: ${discountInfo}` : '';
+        const msgText = `🛍 Новый заказ! #${orderId}\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal||total}${discountLine}\n🚚 Доставка: ${dm}\n📋 Детали: ${address||'не указан'}\n📝 Комментарий: ${comment||'нет'}\n\n👤 Покупатель: ${userName}${tgUser?.username?' (@'+tgUser.username+')':''}\n🆔 ID: ${tgUser?.id||'неизвестно'}`;
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
