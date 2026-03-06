@@ -14,24 +14,20 @@
       function applyTgPadding() {
         window.applyTgPadding = applyTgPadding;
         var tg = window.Telegram && window.Telegram.WebApp;
-        // Only apply in Telegram (not desktop browser)
-        var isTelegram = tg && tg.initData && tg.initData.length > 0;
-        if (!isTelegram) return;
-        // Only apply on mobile (width < 768)
-        if (window.innerWidth >= 768) return;
+        if (!tg) return;
         var top = 0;
         if (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) top = tg.contentSafeAreaInset.top;
         else if (tg.safeAreaInset && tg.safeAreaInset.top) top = tg.safeAreaInset.top;
-        // Add enough to clear Telegram's close button in fullscreen
-        top = Math.max(top, 70);
-        var root = document.getElementById('root');
-        if (root) root.style.paddingTop = top + 'px';
+        if (top > 0) {
+          document.getElementById('root').style.paddingTop = top + 'px';
+        }
       }
+      // Try immediately and after delays
       document.addEventListener('DOMContentLoaded', applyTgPadding);
       window.addEventListener('load', applyTgPadding);
-      setTimeout(applyTgPadding, 50);
-      setTimeout(applyTgPadding, 300);
-      setTimeout(applyTgPadding, 800);
+      setTimeout(applyTgPadding, 100);
+      setTimeout(applyTgPadding, 500);
+      setTimeout(applyTgPadding, 1000);
     </script>
     <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
@@ -50,7 +46,7 @@
 </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f9fafb; color: #111827; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f9fafb; color: #111827; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeSpeed; }
         #root { padding-bottom: env(safe-area-inset-bottom, 0px); }
         .tg-header-safe { padding-top: 8px; }
         .dark-theme { background-color: #0a1628 !important; color: #e8edf4 !important; }
@@ -70,8 +66,8 @@
         .dark-theme .checkout-modal .delivery-method-card.selected { background-color: #1e3a5f !important; border-color: #3b82f6 !important; }
         .dark-theme .address-suggestions { background-color: #13243a !important; border-color: #1e3a5f !important; }
         .dark-theme .hover-item:hover { background-color: #1e3a5f !important; }
-.dark-theme svg { color: #e8edf4; stroke: #e8edf4; }
-.dark-theme .empty-icon svg { stroke: #8b9db5; }
+        .dark-theme svg { color: #e8edf4; stroke: #e8edf4; }
+        .dark-theme .empty-icon svg { stroke: #8b9db5; }
         .app-bg { background-color: #f9fafb; min-height: 100vh; }
         .app-card { background-color: #ffffff; border-color: #e5e7eb; }
         .app-text { color: #111827; }
@@ -95,24 +91,40 @@
         .border-b{border-bottom-width:1px;border-bottom-style:solid}.border-t{border-top-width:1px;border-top-style:solid}
         .text-center{text-align:center}.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}
         h1{font-size:1.5rem;font-weight:500}h2{font-size:1.25rem;font-weight:500}h3{font-size:1.125rem;font-weight:500}
-        button{border:none;background:none;cursor:pointer;font:inherit}.cursor-pointer{cursor:pointer}
-        input,select,textarea{font:inherit;border:1px solid #e5e7eb;border-radius:.75rem;padding:.75rem 1rem;width:100%}
-        input:focus,select:focus,textarea:focus{outline:2px solid #3b82f6;outline-offset:2px}
-        .scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
-        .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:40;padding-bottom:env(safe-area-inset-bottom,0px)}
-        .modal-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto}
-        .modal-content{background-color:white;width:100%;max-width:42rem;border-radius:1rem;margin:auto;max-height:95vh;overflow-y:auto}
-        .categories-scroll{display:flex;gap:.75rem;overflow-x:auto;padding-bottom:.5rem;scroll-snap-type:x mandatory}
-        .category-btn{flex-shrink:0;padding:.5rem 1.5rem;border-radius:9999px;transition:all .5s cubic-bezier(.34,1.56,.64,1);scroll-snap-align:center}
-        .category-btn.active{background-color:#3b82f6;color:white;box-shadow:0 10px 15px -3px rgb(0 0 0/.1);transform:scale(1.05) translateY(-2px)}
+        /* Убираем синюю подсветку при тапе на мобиле */
+        button{border:none;background:none;cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        .cursor-pointer{cursor:pointer}
+        input,select,textarea{font:inherit;border:1px solid #e5e7eb;border-radius:.75rem;padding:.75rem 1rem;width:100%;transition:border-color .2s,box-shadow .2s;outline:none}
+        input:focus,select:focus,textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+        .scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+        /* Навбар с blur */
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:40;padding-bottom:env(safe-area-inset-bottom,0px);backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);background:rgba(255,255,255,.85)!important}
+        .dark-theme .bottom-nav{background:rgba(10,22,40,.88)!important}
+        /* Кнопки навбара */
+        .bottom-nav button{transition:color .18s ease,transform .12s ease}
+        .bottom-nav button:active{transform:scale(.88)}
+        .modal-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;animation:fadeOverlay .2s ease}
+        .modal-content{background-color:white;width:100%;max-width:42rem;border-radius:1rem;margin:auto;max-height:95vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slideUp .25s cubic-bezier(.34,1.56,.64,1)}
+        .categories-scroll{display:flex;gap:.75rem;overflow-x:auto;padding-bottom:.5rem;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+        /* Категории: мягкий bounce */
+        .category-btn{flex-shrink:0;padding:.5rem 1.5rem;border-radius:9999px;transition:background .2s,color .2s,transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;scroll-snap-align:center;will-change:transform;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        .category-btn.active{background-color:#3b82f6;color:white;box-shadow:0 4px 14px rgba(59,130,246,.4);transform:scale(1.06) translateY(-2px)}
+        .category-btn:active{transform:scale(.93)!important}
         .product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
         @media(min-width:768px){.product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
         @media(min-width:1024px){.product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-        .product-card{overflow:hidden;border-radius:.75rem;box-shadow:0 1px 2px 0 rgb(0 0 0/.05);transition:all .3s;text-align:left;width:100%}
-        .product-card:hover{box-shadow:0 4px 6px -1px rgb(0 0 0/.1)}
-        .product-image{aspect-ratio:1/1;background-color:#f9fafb;position:relative;overflow:hidden}
-        .product-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .3s;display:block}
-        .product-card:hover .product-image img{transform:scale(1.05)}
+        /* Карточки товаров: GPU-ускорение */
+        .product-card{overflow:hidden;border-radius:.75rem;box-shadow:0 1px 3px rgb(0 0 0/.06);transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s ease;text-align:left;width:100%;will-change:transform;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        .product-card:hover{box-shadow:0 8px 24px rgb(0 0 0/.1);transform:translateY(-3px) scale(1.01)}
+        .product-card:active{transform:scale(.96)!important;box-shadow:0 1px 3px rgb(0 0 0/.06)}
+        /* Изображения: fade-in при загрузке */
+        .product-image{aspect-ratio:1/1;background-color:#f3f4f6;position:relative;overflow:hidden}
+        .product-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s ease,transform .35s ease}
+        .product-image img.img-loaded{opacity:1}
+        .product-card:hover .product-image img{transform:scale(1.07)}
+        /* Скелетон загрузки */
+        .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite;border-radius:.75rem}
+        .dark-theme .skeleton{background:linear-gradient(90deg,#13243a 25%,#1e3a5f 50%,#13243a 75%);background-size:200% 100%}
         .bg-blue-50{background-color:#eff6ff}.bg-blue-100{background-color:#dbeafe}.bg-blue-600{background-color:#3b82f6}.bg-blue-700{background-color:#1d4ed8}
         .text-blue-600{color:#3b82f6}.text-blue-700{color:#1d4ed8}.border-blue-600{border-color:#3b82f6}
         .bg-orange-100{background-color:#ffedd5}.text-orange-600{color:#ea580c}.text-orange-700{color:#c2410c}
@@ -125,9 +137,9 @@
         .hover\:bg-gray-50:hover{background-color:#f9fafb}.hover\:bg-gray-100:hover{background-color:#f3f4f6}
         .hover\:bg-blue-700:hover{background-color:#1d4ed8}.hover\:bg-red-50:hover{background-color:#fef2f2}
         .hover\:text-blue-600:hover{color:#3b82f6}
-        .transition-colors{transition-property:color,background-color,border-color;transition-duration:.15s}
-        .transition-all{transition-property:all;transition-duration:.15s}
-        .overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}
+        .transition-colors{transition-property:color,background-color,border-color;transition-duration:.18s;transition-timing-function:ease}
+        .transition-all{transition-property:color,background-color,border-color,transform,box-shadow,opacity;transition-duration:.18s;transition-timing-function:ease}
+        .overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto;-webkit-overflow-scrolling:touch}
         .relative{position:relative}.absolute{position:absolute}.fixed{position:fixed}.sticky{position:sticky}
         .top-0{top:0}.inset-0{top:0;right:0;bottom:0;left:0}
         .z-10{z-index:10}.z-20{z-index:20}.z-40{z-index:40}.z-50{z-index:50}.z-60{z-index:60}
@@ -149,56 +161,93 @@
         .badge{display:inline-block;min-width:1.25rem;text-align:center}
         .object-cover{object-fit:cover}.aspect-square{aspect-ratio:1/1}.tracking-widest{letter-spacing:.15em}
         .font-bold{font-weight:700}.line-through{text-decoration:line-through}
-        .toast{position:fixed;top:2rem;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;padding:.75rem 1.5rem;border-radius:.75rem;box-shadow:0 10px 15px -3px rgb(0 0 0/.5);z-index:100;animation:slideDown .3s ease-out;font-weight:500}
-        .inline-notification{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#3b82f6;color:white;padding:1rem 2rem;border-radius:.75rem;box-shadow:0 10px 15px -3px rgb(0 0 0/.5);z-index:200;animation:fadeIn .3s ease-out;font-weight:500;text-align:center;min-width:200px;max-width:90%}
+        /* Toast: приятный bounce сверху */
+        .toast{position:fixed;top:2rem;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;padding:.75rem 1.5rem;border-radius:2rem;box-shadow:0 8px 24px rgba(59,130,246,.4);z-index:100;animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);font-weight:500;white-space:nowrap}
+        .inline-notification{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#3b82f6;color:white;padding:1rem 2rem;border-radius:.75rem;box-shadow:0 10px 24px rgba(59,130,246,.35);z-index:200;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);font-weight:500;text-align:center;min-width:200px;max-width:90%}
         .dark-theme .inline-notification{background:#1e3a5f;border:1px solid #3b82f6}
-        @keyframes slideDown{from{transform:translateX(-50%) translateY(-100%);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
-        @keyframes fadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-        .filter-panel{position:fixed;top:-100%;left:0;width:100%;max-height:80vh;overflow-y:auto;z-index:60;transition:top .3s ease-out}
+        .filter-panel{position:fixed;top:-100%;left:0;width:100%;max-height:80vh;overflow-y:auto;z-index:60;transition:top .28s cubic-bezier(.25,.46,.45,.94)}
         .filter-panel.open{top:0}
-        .filter-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:55;opacity:0;transition:opacity .3s ease-out;pointer-events:none}
+        .filter-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:55;opacity:0;transition:opacity .25s ease;pointer-events:none}
         .filter-overlay.open{opacity:1;pointer-events:all}
         .roulette-container{position:relative;height:160px;overflow:hidden;background:linear-gradient(90deg,rgba(0,0,0,.1) 0%,transparent 20px,transparent calc(100% - 20px),rgba(0,0,0,.1) 100%);border-radius:12px;margin-bottom:16px}
         .roulette-pointer{position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;z-index:20;pointer-events:none}
         .pointer-arrow{position:absolute;top:0;left:50%;transform:translateX(-50%) translateY(-1px);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:12px solid #3b82f6}
         .pointer-line{position:absolute;top:8px;left:50%;transform:translateX(-50%);height:calc(100% - 8px);width:2px;background:#3b82f6;box-shadow:0 0 10px rgba(59,130,246,.8)}
         .roulette-track{position:absolute;top:20px;left:0;right:0;overflow:hidden;height:120px;border-radius:12px}
-        .roulette-items{display:flex;height:100%;align-items:center}
-        .roulette-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;margin:4px;width:100px;height:100px;color:white;transition:all .3s;border:2px solid transparent}
+        .roulette-items{display:flex;height:100%;align-items:center;will-change:transform}
+        .roulette-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;margin:4px;width:100px;height:100px;color:white;transition:transform .2s,box-shadow .2s,border-color .2s;border:2px solid transparent}
         .roulette-item-selected{border:3px solid gold;box-shadow:0 0 20px gold;transform:scale(1.05)}
         .admin-panel{position:fixed;bottom:6rem;right:1rem;z-index:100}
-        .admin-btn{width:50px;height:50px;border-radius:50%;background-color:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);transition:all .3s}
-        .admin-btn:hover{transform:scale(1.1);background-color:#2563eb}
-        .admin-modal{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
-        .admin-modal-content{background-color:white;border-radius:1rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+        /* Кнопка админа: bounce при нажатии */
+        .admin-btn{width:50px;height:50px;border-radius:50%;background-color:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(59,130,246,.45);transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s;will-change:transform;-webkit-tap-highlight-color:transparent}
+        .admin-btn:hover{transform:scale(1.12);box-shadow:0 6px 20px rgba(59,130,246,.5)}
+        .admin-btn:active{transform:scale(.88)}
+        .admin-modal{position:fixed;inset:0;background-color:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeOverlay .2s ease}
+        .admin-modal-content{background-color:white;border-radius:1rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slideUp .28s cubic-bezier(.34,1.56,.64,1)}
         .admin-products-list{max-height:300px;overflow-y:auto}
-        .address-suggestions{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto}
-        .address-suggestion-item{padding:.75rem 1rem;cursor:pointer;transition:background-color .2s}
+        .address-suggestions{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:.75rem;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;animation:fadeDown .15s ease}
+        .address-suggestion-item{padding:.75rem 1rem;cursor:pointer;transition:background-color .15s}
         .address-suggestion-item:hover{background-color:#f3f4f6}
         .dark-theme .address-suggestion-item:hover{background-color:#1e3a5f}
-        .marketplace-card{border-radius:1rem;overflow:hidden;transition:all .3s;position:relative;margin-bottom:1rem;border:1px solid #e5e7eb;background:#fff}
-        .marketplace-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        /* Карточки маркетплейса */
+        .marketplace-card{border-radius:1rem;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;position:relative;margin-bottom:1rem;border:1px solid #e5e7eb;background:#fff;will-change:transform;-webkit-tap-highlight-color:transparent}
+        .marketplace-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.1)}
+        .marketplace-card:active{transform:scale(.98)}
         .dark-theme .marketplace-card{background:#13243a;border-color:#1e3a5f}
-        .delivery-method-card{border-radius:1rem;padding:1rem;text-align:center;transition:all .3s;cursor:pointer;border:2px solid #e5e7eb;background-color:white;color:#111827}
-        .delivery-method-card:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
+        /* Доставка */
+        .delivery-method-card{border-radius:1rem;padding:1rem;text-align:center;transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s,border-color .18s,background-color .18s;cursor:pointer;border:2px solid #e5e7eb;background-color:white;color:#111827;-webkit-tap-highlight-color:transparent}
+        .delivery-method-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+        .delivery-method-card:active{transform:scale(.97)}
         .delivery-method-card.selected{border-color:#3b82f6;background-color:#eff6ff}
         .dark-theme .delivery-method-card{background-color:#13243a;color:#e8edf4}
         .dark-theme .delivery-method-card.selected{background-color:#1e3a5f;border-color:#3b82f6}
         .price-display{font-size:1.5rem;font-weight:bold;color:#3b82f6}
         .dark-theme .price-display{color:#60a5fa}
-        .loading-spinner{width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite}
-        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-        .location-button{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:1rem;background:#3b82f6;color:white;border:none;border-radius:.75rem;cursor:pointer;transition:background-color .3s}
+        /* Спиннер: быстрее и плавнее */
+        .loading-spinner{width:36px;height:36px;border:3px solid rgba(59,130,246,.15);border-top:3px solid #3b82f6;border-radius:50%;animation:spin .65s linear infinite}
+        .location-button{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:1rem;background:#3b82f6;color:white;border:none;border-radius:.75rem;cursor:pointer;transition:background-color .2s,transform .1s;-webkit-tap-highlight-color:transparent}
         .location-button:hover{background:#2563eb}
-       .map-container{width:100%;height:300px;border-radius:.75rem;overflow:hidden;position:relative;z-index:1}
+        .location-button:active{transform:scale(.98)}
+        .map-container{width:100%;height:300px;border-radius:.75rem;overflow:hidden;position:relative;z-index:1}
+        /* === KEYFRAMES === */
+        @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes spin2{to{transform:rotate(360deg)}}
-        .animate-spin{animation:spin2 1s linear infinite}
+        .animate-spin{animation:spin2 .65s linear infinite}
+        @keyframes toastIn{from{transform:translateX(-50%) translateY(-120%);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+        @keyframes popIn{from{opacity:0;transform:translate(-50%,-50%) scale(.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+        @keyframes slideUp{from{opacity:0;transform:translateY(32px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes fadeOverlay{from{opacity:0}to{opacity:1}}
+        @keyframes fadeDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes fadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+        /* Экраны: плавное появление */
+        @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .screen-enter{animation:screenIn .22s cubic-bezier(.25,.46,.45,.94) both}
     </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-    const { useState, useEffect, useRef, useMemo } = React;
+    const { useState, useEffect, useRef, useMemo, useCallback, memo } = React;
+
+    // Debounce утилита — не даёт лишним ре-рендерам происходить при вводе
+    function useDebounce(value, delay) {
+        const [debouncedValue, setDebouncedValue] = useState(value);
+        useEffect(() => {
+            const timer = setTimeout(() => setDebouncedValue(value), delay);
+            return () => clearTimeout(timer);
+        }, [value, delay]);
+        return debouncedValue;
+    }
+
+    // Дебаунс для Firebase — группируем частые сохранения
+    function useDebounceCallback(fn, delay) {
+        const timer = useRef(null);
+        return useCallback((...args) => {
+            if (timer.current) clearTimeout(timer.current);
+            timer.current = setTimeout(() => fn(...args), delay);
+        }, [fn, delay]);
+    }
 
     const initialProducts = [];
     const CATEGORIES = [
@@ -329,12 +378,6 @@
         const [broadcastText, setBroadcastText] = useState('');
         const [broadcastSending, setBroadcastSending] = useState(false);
         const [broadcastResult, setBroadcastResult] = useState(null);
-        const [dmUsername, setDmUsername] = useState('');
-        const [dmText, setDmText] = useState('');
-        const [dmSending, setDmSending] = useState(false);
-        const [dmResult, setDmResult] = useState(null);
-        const [stats, setStats] = useState(null);
-        const [statsLoading, setStatsLoading] = useState(false);
 
         const handleTransfer = async () => {
             if (!transferUsername.trim()) { setNotification('Введите юзернейм'); return; }
@@ -441,26 +484,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <h3 className="app-text mb-1">📢 Рассылка</h3>
                             <p className="app-text-secondary text-sm">Отправить сообщение всем пользователям бота</p>
                         </button>
-                        <button onClick={()=>setActiveTab('dm')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
-                            <h3 className="app-text mb-1">✉️ Личное сообщение</h3>
-                            <p className="app-text-secondary text-sm">Написать конкретному пользователю от имени бота</p>
-                        </button>
-                        <button onClick={async()=>{
-                            setActiveTab('stats');setStatsLoading(true);
-                            try{
-                                const db=window.__firebaseDb;
-                                const snap=await db.collection('users').get();
-                                const users=snap.docs.map(d=>d.data());
-                                const totalOrders=users.reduce((s,u)=>s+(u.orders||[]).length,0);
-                                const totalRevenue=users.reduce((s,u)=>s+(u.orders||[]).reduce((ss,o)=>ss+(o.finalTotal||o.total||0),0),0);
-                                const avgCoins=users.length?Math.round(users.reduce((s,u)=>s+(u.chkCoins||0),0)/users.length):0;
-                                setStats({total:users.length,withOrders:users.filter(u=>(u.orders||[]).length>0).length,totalOrders,totalRevenue:totalRevenue.toFixed(0),avgCoins});
-                            }catch(e){setStats({error:e.message});}
-                            setStatsLoading(false);
-                        }} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
-                            <h3 className="app-text mb-1">📊 Статистика</h3>
-                            <p className="app-text-secondary text-sm">Пользователи, заказы, выручка</p>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -529,102 +552,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 {broadcastSending ? '⏳ Отправляем...' : '📢 Отправить всем'}
                             </button>
                         </>)}
-                    </div>
-                </div>
-                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
-            </div>
-        );
-
-        if (activeTab === 'dm') return (
-            <div className="admin-modal" onClick={onClose}>
-                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
-                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
-                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
-                        <h2 className="app-text">Личное сообщение</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                        {dmResult ? (
-                            <div className="text-center py-6">
-                                <div style={{fontSize:'2.5rem'}} className="mb-3">✉️</div>
-                                <p className="app-text font-bold mb-1">Отправлено!</p>
-                                <p className="app-text-secondary text-sm">{dmResult}</p>
-                                <button onClick={()=>{setDmResult(null);setDmText('');}} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">Ещё</button>
-                            </div>
-                        ) : (<>
-                            <div><label className="block app-text mb-2">Юзернейм или ID</label><input value={dmUsername} onChange={e=>setDmUsername(e.target.value)} className="app-card app-text app-border w-full" placeholder="@username или 123456789" /></div>
-                            <div><label className="block app-text mb-2">Текст сообщения</label><textarea value={dmText} onChange={e=>setDmText(e.target.value)} className="app-card app-text app-border w-full" rows="5" placeholder="Ваш заказ отправлен..." style={{resize:'none'}} /></div>
-                            <div className="app-card border app-border rounded-xl p-3"><p className="app-text-secondary text-sm">💡 HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;</p></div>
-                            <button onClick={async()=>{
-                                if(!dmUsername.trim()||!dmText.trim()){setNotification('Заполните все поля');return;}
-                                setDmSending(true);
-                                let chatId=dmUsername.replace('@','').trim();
-                                if(!/^\d+$/.test(chatId)){
-                                    try{const snap=await window.__firebaseDb.collection('users').get();snap.forEach(doc=>{const d=doc.data();if(d.username&&d.username.toLowerCase()===chatId.toLowerCase())chatId=doc.id;});}catch(e){}
-                                }
-                                try{
-                                    const r=await fetch('https://royal-disk-c66a.external-all666.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'dm',chatId,text:dmText})});
-                                    const data=await r.json();
-                                    if(data.ok)setDmResult(`Сообщение отправлено → ${dmUsername}`);
-                                    else setNotification('Ошибка: пользователь не найден или не писал боту');
-                                }catch(e){setNotification('Ошибка: '+e.message);}
-                                setDmSending(false);
-                            }} disabled={dmSending||!dmUsername.trim()||!dmText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                                {dmSending?'⏳ Отправляем...':'✉️ Отправить'}
-                            </button>
-                        </>)}
-                    </div>
-                </div>
-                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
-            </div>
-        );
-
-        if (activeTab === 'stats') return (
-            <div className="admin-modal" onClick={onClose}>
-                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
-                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
-                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
-                        <h2 className="app-text">Статистика</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
-                    </div>
-                    <div className="p-6">
-                        {statsLoading ? (
-                            <div className="flex justify-center py-10"><div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}} /></div>
-                        ) : stats?.error ? (
-                            <p className="text-red-500 text-center">{stats.error}</p>
-                        ) : stats ? (<>
-                            <div className="space-y-3 mb-6">
-                                {[
-                                    {icon:'👥',label:'Всего пользователей',value:stats.total,color:'#3b82f6'},
-                                    {icon:'🛍',label:'Делали заказы',value:stats.withOrders,color:'#8b5cf6'},
-                                    {icon:'📦',label:'Всего заказов',value:stats.totalOrders,color:'#10b981'},
-                                    {icon:'💵',label:'Общая выручка',value:`$${stats.totalRevenue}`,color:'#ca8a04'},
-                                    {icon:'🎰',label:'Средний баланс CHK',value:`${stats.avgCoins} CHK`,color:'#ef4444'},
-                                ].map((s,i)=>(
-                                    <div key={i} className="app-card border app-border rounded-xl p-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3"><span style={{fontSize:'1.4rem'}}>{s.icon}</span><p className="app-text text-sm">{s.label}</p></div>
-                                        <p style={{color:s.color,fontWeight:'bold',fontSize:'1.2rem'}}>{s.value}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            <button onClick={async()=>{
-                                if(!window.confirm('Очистить статистику заказов у всех пользователей? Это нельзя отменить.'))return;
-                                try{
-                                    const db=window.__firebaseDb;
-                                    const snap=await db.collection('users').get();
-                                    const batch=db.batch();
-                                    snap.docs.forEach(doc=>batch.update(doc.ref,{orders:[]}));
-                                    await batch.commit();
-                                    const oSnap=await db.collection('orders').get();
-                                    const batch2=db.batch();
-                                    oSnap.docs.forEach(doc=>batch2.delete(doc.ref));
-                                    await batch2.commit();
-                                    setNotification('Статистика очищена');setStats(s=>({...s,totalOrders:0,withOrders:0}));
-                                }catch(e){setNotification('Ошибка: '+e.message);}
-                            }} className="w-full py-3 rounded-xl border text-red-500 app-border hover:bg-red-50 transition-colors text-sm font-medium">
-                                🗑 Очистить всю статистику заказов
-                            </button>
-                        </>) : null}
                     </div>
                 </div>
                 {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
@@ -1096,23 +1023,26 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const scrollRef = useRef(null);
         const searchInputRef = useRef(null);
 
-        const handleCategoryClick = (id, i) => {
+        // Debounce поиска — фильтрация только после паузы в наборе
+        const debouncedSearch = useDebounce(searchQuery, 180);
+
+        const handleCategoryClick = useCallback((id, i) => {
             setSelectedCategory(id);
             if (scrollRef.current) {
                 const btn = scrollRef.current.children[i];
                 scrollRef.current.scrollTo({ left: btn.offsetLeft - scrollRef.current.offsetWidth/2 + btn.offsetWidth/2, behavior:'smooth' });
             }
-        };
+        }, []);
 
         const filtered = useMemo(() => products.filter(p => {
             const matchCat = selectedCategory==='all' || p.category===selectedCategory;
-            const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchSearch = !debouncedSearch || p.name.toLowerCase().includes(debouncedSearch.toLowerCase());
             const matchCond = conditionFilter==='all' || p.condition===conditionFilter;
             return matchCat && matchSearch && matchCond;
-        }), [selectedCategory, searchQuery, conditionFilter, products]);
+        }), [selectedCategory, debouncedSearch, conditionFilter, products]);
 
         return (
-            <div>
+            <div className="screen-enter">
                 <div className={`filter-overlay ${isFilterOpen?'open':''}`} onClick={()=>setIsFilterOpen(false)} />
                 <div className={`filter-panel app-card ${isFilterOpen?'open':''}`}>
                     <div className="p-6">
@@ -1135,7 +1065,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 <div className="p-4 pb-3 flex items-center justify-between">
                     <button onClick={()=>setIsFilterOpen(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><FilterAltIcon /></button>
                     <h1 onClick={()=>setTheme(theme==='light'?'dark':'light')} className="app-text tracking-widest cursor-pointer" style={{fontWeight:900,fontSize:'1.5rem'}}>CHKWEAR</h1>
-                    <button onClick={()=>{setIsSearchMode(true);setTimeout(()=>searchInputRef.current?.focus(),100)}} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><SearchIcon /></button>
+                    <button onClick={()=>{setIsSearchMode(true);setTimeout(()=>searchInputRef.current?.focus(),60)}} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><SearchIcon /></button>
                 </div>
                 <div className="app-border border-b mb-4"></div>
                 {!isSearchMode ? (
@@ -1165,15 +1095,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     {filtered.length > 0 ? (
                         <div className="product-grid">
                             {filtered.map(product=>(
-                                <button key={product.id} onClick={()=>setSelectedProduct(product)} className="product-card app-card">
-                                    <div className="product-image">
-                                        <img src={product.imageUrl} alt={product.name} onError={e=>{e.target.onerror=null;e.target.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EФото%3C/text%3E%3C/svg%3E'}} />
-                                        <div className="absolute top-2 right-2">
-                                            <span className={`text-xs px-2 py-1 rounded-full ${product.condition==='new'?'bg-green-100 text-green-600':'bg-blue-100 text-blue-700'}`}>{product.condition==='new'?'New':'Used'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="p-3"><h3 className="app-text mb-1">{product.name}</h3><p className="app-text-secondary">{product.displayPrice||product.price}</p></div>
-                                </button>
+                                <ProductCard key={product.id} product={product} onClick={setSelectedProduct} />
                             ))}
                         </div>
                     ) : (
@@ -1190,16 +1112,50 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 
+    // Мемоизированная карточка товара — не перерисовывается без изменений
+    const ProductCard = memo(function ProductCard({ product, onClick }) {
+        const imgRef = useRef(null);
+        useEffect(() => {
+            const img = imgRef.current;
+            if (!img) return;
+            if (img.complete && img.naturalWidth > 0) {
+                img.classList.add('img-loaded');
+            } else {
+                img.onload = () => img.classList.add('img-loaded');
+                img.onerror = () => { img.classList.add('img-loaded'); };
+            }
+        }, [product.imageUrl]);
+        return (
+            <button onClick={()=>onClick(product)} className="product-card app-card">
+                <div className="product-image">
+                    <img
+                        ref={imgRef}
+                        src={product.imageUrl}
+                        alt={product.name}
+                        loading="lazy"
+                        decoding="async"
+                        onLoad={e=>e.target.classList.add('img-loaded')}
+                        onError={e=>{e.target.onerror=null;e.target.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EФото%3C/text%3E%3C/svg%3E';e.target.classList.add('img-loaded');}}
+                    />
+                    <div className="absolute top-2 right-2">
+                        <span className={`text-xs px-2 py-1 rounded-full ${product.condition==='new'?'bg-green-100 text-green-600':'bg-blue-100 text-blue-700'}`}>{product.condition==='new'?'New':'Used'}</span>
+                    </div>
+                </div>
+                <div className="p-3"><h3 className="app-text mb-1">{product.name}</h3><p className="app-text-secondary">{product.displayPrice||product.price}</p></div>
+            </button>
+        );
+    });
+
     // FAVORITES
     function Favorites({ favorites, removeFromFavorites, addToCart, theme, products }) {
         const [selectedProduct, setSelectedProduct] = useState(null);
         const [toast, setToast] = useState(null);
-        const getProduct = (item) => {
+        const getProduct = useCallback((item) => {
             const full = products?.find(p => p.id === item.id);
             return full ? {...item, imageUrl: full.imageUrl || item.imageUrl, images: full.images || item.images} : item;
-        };
+        }, [products]);
         return (
-            <div className="p-4">
+            <div className="p-4 screen-enter">
                 <div className="mb-6"><h1 className="app-text">Избранное</h1></div>
                 {favorites.length===0 ? (
                     <div className="flex flex-col items-center justify-center py-20">
@@ -1244,7 +1200,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [toast, setToast] = useState(null);
         const total = cart.reduce((sum,p)=>sum+(p.finalPrice||parseInt(p.displayPrice?.replace('$','')||p.price.match(/\$?\s*(\d+)/)?.[1]||0)),0);
         return (
-            <div className="p-4">
+            <div className="p-4 screen-enter">
                 <div className="mb-6"><h1 className="app-text">Корзина</h1></div>
                 {cart.length===0 ? (
                     <div className="flex flex-col items-center justify-center py-20">
@@ -1467,32 +1423,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     function ReferralScreen({ onBack, referralCode, referralStats }) {
     const [copied, setCopied] = useState(false);
     const botLink = `https://t.me/chkwear_bot?start=${referralCode}`;
-    const shareText = '🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!';
     
     const shareLink = () => {
         const tg = window.Telegram?.WebApp;
-        // Proper Telegram share via tg://msg_url deep link
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(shareText)}`;
-        if (tg?.openTelegramLink) {
-            tg.openTelegramLink(shareUrl);
+        tg?.expand();
+        if (tg) {
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`);
         } else {
-            window.open(shareUrl, '_blank');
-        }
-    };
-
-    const copyLink = () => {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(botLink).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);}).catch(()=>{});
-        } else {
-            // Fallback for no clipboard API
-            const ta = document.createElement('textarea');
-            ta.value = botLink;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            setCopied(true);
-            setTimeout(()=>setCopied(false),2000);
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`, '_blank');
         }
     };
 
@@ -1507,7 +1445,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <p className="text-blue-600 text-sm">{botLink}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                    <button onClick={copyLink} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl transition-colors">
+                    <button onClick={()=>{navigator.clipboard.writeText(botLink);setCopied(true);setTimeout(()=>setCopied(false),2000)}} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl transition-colors">
                         <CopyIcon /><span>{copied?'Скопировано!':'Копировать'}</span>
                     </button>
                     <button onClick={shareLink} className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
@@ -1733,50 +1671,17 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             },10);
         };
 
-        // Blackjack — casino rules
+        // Blackjack
         const [gameState,setGameState]=useState('idle');
         const [playerHand,setPlayerHand]=useState([]);
         const [dealerHand,setDealerHand]=useState([]);
         const [bet,setBet]=useState('');
-        const [winMsg,setWinMsg]=useState('');
-        const [insuranceTaken,setInsuranceTaken]=useState(false);
-        const [insurancePaid,setInsurancePaid]=useState(0);
-        const isInf = chkCoins===Infinity;
-        const bNum=()=>parseInt(bet)||0;
         const createCard=()=>{const suits=['♠','♥','♦','♣'],vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];return{suit:suits[Math.floor(Math.random()*4)],value:vals[Math.floor(Math.random()*13)]};};
         const calcHand=hand=>{let v=0,a=0;hand.forEach(c=>{if(c.value==='A'){a++;v+=11;}else if(['J','Q','K'].includes(c.value))v+=10;else v+=parseInt(c.value);});while(v>21&&a>0){v-=10;a--;}return v;};
-        const isNatural=hand=>hand.length===2&&calcHand(hand)===21;
-        const startBJ=()=>{
-            const b=bNum();if(b<10||(!isInf&&b>chkCoins))return;
-            if(!isInf)setChkCoins(p=>p-b);
-            const ph=[createCard(),createCard()],dh=[createCard(),createCard()];
-            setPlayerHand(ph);setDealerHand(dh);setInsuranceTaken(false);setInsurancePaid(0);setWinMsg('');
-            if(isNatural(ph)&&isNatural(dh)){if(!isInf)setChkCoins(p=>p+b);setWinMsg('Ничья — два блэкджека!');setGameState('push');}
-            else if(isNatural(ph)){const w=Math.floor(b*1.5);if(!isInf)setChkCoins(p=>p+b+w);setWinMsg(`🃏 Блэкджек! +${b+w} CHK (3:2)`);setGameState('won');}
-            else{setGameState('playing');}
-        };
-        const bjHit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21){setWinMsg('💥 Перебор!');setGameState('lost');}};
-        const bjInsurance=()=>{const ins=Math.floor(bNum()/2);if(!isInf&&ins>chkCoins)return;if(!isInf)setChkCoins(p=>p-ins);setInsuranceTaken(true);setInsurancePaid(ins);};
-        const bjDouble=()=>{
-            const b=bNum();if(!isInf&&b>chkCoins)return;if(!isInf)setChkCoins(p=>p-b);
-            const h=[...playerHand,createCard()];setPlayerHand(h);
-            if(calcHand(h)>21){setWinMsg(`💥 Перебор! (-${b*2} CHK)`);setGameState('lost');return;}
-            let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
-            const pv=calcHand(h),dv=calcHand(d),tb=b*2;
-            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+tb*2);setWinMsg(`✅ Победа с x2! +${tb*2} CHK`);setGameState('won');}
-            else if(pv===dv){if(!isInf)setChkCoins(p=>p+tb);setWinMsg('Ничья при x2');setGameState('push');}
-            else{setWinMsg(`❌ Проигрыш при x2`);setGameState('lost');}
-        };
-        const bjStand=()=>{
-            const b=bNum();let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
-            const pv=calcHand(playerHand),dv=calcHand(d);
-            const insReturn=insuranceTaken&&isNatural(d)?insurancePaid*3:0;
-            if(!isInf&&insReturn>0)setChkCoins(p=>p+insReturn);
-            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+b*2);setWinMsg(`✅ Победа! +${b*2} CHK${insReturn?' (+'+insReturn+' страховка)':''}`);;setGameState('won');}
-            else if(pv===dv){if(!isInf)setChkCoins(p=>p+b);setWinMsg('Ничья');setGameState('push');}
-            else{setWinMsg(`❌ Проигрыш${insReturn?' (+'+insReturn+' CHK страховка)':''}`);;setGameState('lost');}
-        };
-        const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);setWinMsg('');setInsuranceTaken(false);setInsurancePaid(0);};
+        const startBJ=()=>{const betNum=parseInt(bet)||0;if(betNum<10||betNum>chkCoins)return;setChkCoins(p=>p===Infinity?Infinity:p-betNum);setPlayerHand([createCard(),createCard()]);setDealerHand([createCard(),createCard()]);setGameState('playing');};
+        const hit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21)setGameState('lost');};
+        const stand=()=>{let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);const betNum=parseInt(bet)||0;const pv=calcHand(playerHand),dv=calcHand(d);if(dv>21||pv>dv){setGameState('won');setChkCoins(p=>p===Infinity?Infinity:p+betNum*2);}else if(pv===dv){setGameState('push');setChkCoins(p=>p===Infinity?Infinity:p+betNum);}else setGameState('lost');};
+        const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);};
 
         const convertToDiscount=()=>{
             const amount=parseInt(convertAmount);
@@ -1818,26 +1723,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <button onClick={startBJ} disabled={!bet||parseInt(bet)<10||parseInt(bet)>chkCoins} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Начать игру</button>
                 </div>)}
                 {gameState!=='idle'&&(<div className="space-y-4">
-                    <div className="app-card rounded-xl p-4">
-                        <h3 className="app-text mb-2">Дилер {gameState==='playing'?'(?)':'('+calcHand(dealerHand)+')'}</h3>
-                        <div className="flex flex-wrap gap-2">{dealerHand.map((c,i)=><div key={i} style={{minWidth:'50px',background:gameState==='playing'&&i===1?'#1e3a5f':'white',border:`2px solid ${gameState==='playing'&&i===1?'#1e3a5f':'#d1d5db'}`,borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:gameState==='playing'&&i===1?'white':(['♥','♦'].includes(c.suit)?'#ef4444':'#111'),fontWeight:'bold'}}>{gameState==='playing'&&i===1?'🂠':`${c.value}${c.suit}`}</div>)}</div>
-                    </div>
-                    <div className="app-card rounded-xl p-4">
-                        <h3 className="app-text mb-2">Вы ({calcHand(playerHand)})</h3>
-                        <div className="flex flex-wrap gap-2">{playerHand.map((c,i)=><div key={i} style={{minWidth:'50px',background:'white',border:'2px solid #3b82f6',borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:['♥','♦'].includes(c.suit)?'#ef4444':'#111',fontWeight:'bold'}}>{c.value}{c.suit}</div>)}</div>
-                    </div>
-                    {gameState==='playing'&&<div className="space-y-2">
-                        {dealerHand[0]?.value==='A'&&!insuranceTaken&&<button onClick={bjInsurance} className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 text-sm font-medium">🛡 Страховка (½ ставки)</button>}
-                        <div className="grid gap-3" style={{gridTemplateColumns:(isInf||bNum()<=chkCoins)&&playerHand.length===2?'1fr 1fr 1fr':'1fr 1fr'}}>
-                            <button onClick={bjHit} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold text-lg">Ещё</button>
-                            <button onClick={bjStand} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold text-lg">Стоп</button>
-                            {playerHand.length===2&&(isInf||bNum()<=chkCoins)&&<button onClick={bjDouble} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold text-lg">x2</button>}
-                        </div>
-                        {insuranceTaken&&<p className="text-center text-xs app-text-secondary">🛡 Страховка {insurancePaid} CHK принята</p>}
-                    </div>}
-                    {gameState==='won'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(22,163,74,0.1)'}}><p style={{color:'#16a34a',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
-                    {gameState==='lost'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(239,68,68,0.1)'}}><p style={{color:'#ef4444',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
-                    {gameState==='push'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(234,179,8,0.1)'}}><p style={{color:'#ca8a04',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg||'Ничья'}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
+                    <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Дилер ({gameState==='playing'?'?':calcHand(dealerHand)})</h3><div className="flex gap-2">{dealerHand.map((c,i)=><div key={i} className="bg-white border-2 border-gray-300 rounded-xl p-3 text-center" style={{minWidth:'60px'}}>{gameState==='playing'&&i===1?'?':`${c.value}${c.suit}`}</div>)}</div></div>
+                    <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Вы ({calcHand(playerHand)})</h3><div className="flex gap-2">{playerHand.map((c,i)=><div key={i} className="bg-white border-2 border-blue-600 rounded-xl p-3 text-center" style={{minWidth:'60px'}}>{c.value}{c.suit}</div>)}</div></div>
+                    {gameState==='playing'&&<div className="grid grid-cols-2 gap-3"><button onClick={hit} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700">Взять</button><button onClick={stand} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700">Хватит</button></div>}
+                    {gameState==='won'&&<div className="bg-green-100 rounded-xl p-4 text-center"><p className="text-green-600 font-bold">Выиграли! +{bet*2} CHK</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
+                    {gameState==='lost'&&<div className="bg-red-50 rounded-xl p-4 text-center"><p className="text-red-500 font-bold">Проиграли</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
+                    {gameState==='push'&&<div className="bg-yellow-100 rounded-xl p-4 text-center"><p className="text-yellow-700 font-bold">Ничья</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
                 </div>)}
             </div>
         );
@@ -1943,7 +1834,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // BOTTOM NAV
-    function BottomNav({ activeScreen, onScreenChange, cartCount, favCount }) {
+    const BottomNav = memo(function BottomNav({ activeScreen, onScreenChange, cartCount, favCount }) {
         const items = [
             {id:'home',icon:HomeIcon,label:'Главная'},
             {id:'favorites',icon:HeartIcon,label:'Избранное',count:favCount},
@@ -1951,18 +1842,19 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             {id:'profile',icon:UserIcon,label:'Профиль'},
         ];
         return (
-            <nav className="bottom-nav app-card border-t app-border shadow-lg">
+            <nav className="bottom-nav app-card border-t app-border">
                 <div className="container grid grid-cols-4">
                     {items.map(item=>(
-                        <button key={item.id} onClick={()=>onScreenChange(item.id)} className={`flex flex-col items-center gap-1 py-3 transition-colors relative ${activeScreen===item.id?'text-blue-600':'app-text-secondary'}`}>
+                        <button key={item.id} onClick={()=>onScreenChange(item.id)} className={`flex flex-col items-center gap-1 py-3 transition-colors relative ${activeScreen===item.id?'text-blue-600':'app-text-secondary'}`} style={{position:'relative'}}>
                             <item.icon filled={activeScreen===item.id&&item.id==='favorites'} />
                             <span className="text-xs">{item.label}</span>
+                            {item.count > 0 && <span style={{position:'absolute',top:'6px',right:'calc(50% - 18px)',background:'#ef4444',color:'white',borderRadius:'99px',fontSize:'10px',minWidth:'16px',height:'16px',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',fontWeight:700,lineHeight:1}}>{item.count > 9 ? '9+' : item.count}</span>}
                         </button>
                     ))}
                 </div>
             </nav>
         );
-    }
+    });
 
     // APP
     function App() {
@@ -1981,22 +1873,19 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         const [referralCode] = useState(() => {
             const saved = localStorage.getItem('userReferralCode');
             if (saved) return saved;
-            const code = 'CHK' + Math.random().toString(36).substring(2,8).toUpperCase();
+            const code = 'CHKWEAR' + Math.random().toString(36).substring(2,8).toUpperCase();
             localStorage.setItem('userReferralCode', code);
             return code;
         });
-        const [referralStats, setReferralStats] = useState({ referralsCount:0, cashback:0 });
+        const [referralStats] = useState({ referralsCount:0, cashback:0 });
         const tg = window.Telegram?.WebApp;
-        const isTelegram = !!(tg?.initData?.length);
-        try {
-          if (tg && isTelegram) { 
-            tg.expand(); 
-            tg.requestFullscreen?.();
-            setTimeout(() => window.applyTgPadding?.(), 300);
-          }
-        } catch(e) { console.log('TG init:', e); }
-        const tgUser = isTelegram ? tg?.initDataUnsafe?.user : null;
-        const startParam = isTelegram ? tg?.initDataUnsafe?.start_param : null;
+        if (tg) { 
+          tg.expand(); 
+          tg.requestFullscreen?.();
+          setTimeout(() => window.applyTgPadding?.(), 300);
+        }
+const tgUser = tg?.initDataUnsafe?.user;
+const startParam = tg?.initDataUnsafe?.start_param;
 useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
@@ -2053,14 +1942,7 @@ useEffect(() => {
                 } catch(e) { setOrders(data.orders); }
             }
         }
-        db.collection('users').doc(userId).set({ referralCode, username: tgUser?.username || '' }, { merge: true });
-        // Load referral stats
-        db.collection('users').doc(userId).get().then(d => {
-            if (d.exists) {
-                const refs = d.data().referrals || [];
-                setReferralStats({ referralsCount: refs.length, cashback: refs.length * 1000 });
-            }
-        });
+        db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
         setUserDataLoaded(true);
     }).catch(() => setUserDataLoaded(true));
 }, [tgUser?.id]);
@@ -2084,29 +1966,29 @@ useEffect(() => {
         useEffect(() => {
             const saved = localStorage.getItem('theme');
             if (saved) setTheme(saved);
-            if (tgUser?.id === 1910027948) setIsAdmin(true);
-            // Process referral for ALL users
-            if (startParam && tgUser && startParam !== referralCode) {
-                const db = window.__firebaseDb;
-                if (db) {
-                    const userId = tgUser.id.toString();
-                    db.collection('users').where('referralCode', '==', startParam).get().then(snap => {
-                        if (!snap.empty) {
-                            const inviterDoc = snap.docs[0];
-                            const inviterData = inviterDoc.data();
-                            const alreadyReferrals = inviterData.referrals || [];
-                            if (!alreadyReferrals.includes(userId)) {
-                                inviterDoc.ref.update({
-                                    referrals: [...alreadyReferrals, userId],
-                                    chkCoins: (inviterData.chkCoins || 0) + 1000
-                                });
-                            }
-                        }
+            const urlParams = new URLSearchParams(window.location.search);
+ if (tgUser?.id === 1910027948) {
+    setIsAdmin(true);
+    if (startParam && tgUser && startParam !== referralCode) {
+    const db = window.__firebaseDb;
+    if (db) {
+        const inviterQuery = db.collection('users').where('referralCode', '==', startParam);
+        inviterQuery.get().then(snap => {
+            if (!snap.empty) {
+                const inviterDoc = snap.docs[0];
+                const inviterData = inviterDoc.data();
+                const alreadyReferrals = inviterData.referrals || [];
+                if (!alreadyReferrals.includes(tgUser.id.toString())) {
+                    inviterDoc.ref.update({
+                        referrals: [...alreadyReferrals, tgUser.id.toString()],
+                        chkCoins: (inviterData.chkCoins || 0) + 1000
                     });
-                    // Save who referred this user
-                    db.collection('users').doc(userId).set({ referredBy: startParam }, { merge: true });
                 }
             }
+        });
+    }
+}
+}
         }, []);
 
         useEffect(() => {
@@ -2119,14 +2001,13 @@ useEffect(() => {
             try { localStorage.setItem('chkwearProducts', JSON.stringify(products)); } catch(e) { console.error(e); }
         }, [products]);
 
-        const saveUserData = (newFavorites, newCart, newOrders) => {
+        const _saveUserDataImmediate = useCallback((newFavorites, newCart, newOrders) => {
     const db = window.__firebaseDb;
     if (!db || !tgUser?.id) return;
     const userId = tgUser.id.toString();
     const clean = obj => JSON.parse(JSON.stringify(obj, (k, v) => v === undefined ? null : v));
     const strip = items => items.map(p => {
         const { images, ...rest } = p;
-        // Keep imageUrl only if it's a real URL (not base64)
         if (rest.imageUrl && rest.imageUrl.startsWith('data:')) delete rest.imageUrl;
         return clean(rest);
     });
@@ -2137,33 +2018,45 @@ useEffect(() => {
             orders: clean(newOrders.map(o => ({ ...o, items: strip(o.items) })))
         }, { merge: true });
     } catch(e) { console.error('saveUserData error:', e); }
-};
+}, [tgUser?.id]);
 
-const addToFavorites = p => {
+        // Дебаунс 600ms — группирует быстрые клики в одно сохранение
+        const saveTimerRef = useRef(null);
+        const saveUserData = useCallback((newFavorites, newCart, newOrders) => {
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = setTimeout(() => {
+                _saveUserDataImmediate(newFavorites, newCart, newOrders);
+            }, 600);
+        }, [_saveUserDataImmediate]);
+
+const addToFavorites = useCallback(p => {
     if(!favorites.find(x=>x.id===p.id)) {
         const newFav = [...favorites, p];
         setFavorites(newFav);
         saveUserData(newFav, cart, orders);
     }
-};
-const removeFromFavorites = id => {
+}, [favorites, cart, orders, saveUserData]);
+
+const removeFromFavorites = useCallback(id => {
     const newFav = favorites.filter(p=>p.id!==id);
     setFavorites(newFav);
     saveUserData(newFav, cart, orders);
-};
-const addToCart = (p,mp,fp) => {
+}, [favorites, cart, orders, saveUserData]);
+
+const addToCart = useCallback((p,mp,fp) => {
     const newCart = [...cart, {...p,marketplace:mp,finalPrice:fp}];
     setCart(newCart);
     saveUserData(favorites, newCart, orders);
-};
-const removeFromCart = (id,mp) => {
+}, [favorites, cart, orders, saveUserData]);
+
+const removeFromCart = useCallback((id,mp) => {
     const newCart = cart.filter((p,i,arr) => {
         const idx = arr.findIndex(x=>x.id===id&&x.marketplace===mp);
         return i !== idx;
     });
     setCart(newCart);
     saveUserData(favorites, newCart, orders);
-};
+}, [favorites, cart, orders, saveUserData]);
 const createOrder = async (items, total, dm, address, comment, finalTotal, discountInfo) => {
     const orderId = `ORD-${Date.now()}`;
     const orderNumber = orders.length + 1;
@@ -2174,24 +2067,15 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
     setCart([]);
     saveUserData(favorites, [], newOrders);
 
-    // Clean up used bonuses from localStorage AND Firebase
-    const cleanedPC = JSON.parse(localStorage.getItem('promoCodes')||'[]').filter(p=>!p.used);
-    const cleanedCD = JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used);
-    localStorage.setItem('promoCodes', JSON.stringify(cleanedPC));
-    localStorage.setItem('chkDiscounts', JSON.stringify(cleanedCD));
-
     const db = window.__firebaseDb;
     if (db && tgUser?.id) {
-        const userId = tgUser.id.toString();
         db.collection('orders').doc(orderId).set({
             ...newOrder,
-            userId,
+            userId: tgUser.id.toString(),
             userName: tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно',
             username: tgUser?.username || '',
             status: 'pending'
         });
-        // Sync cleaned bonuses to Firebase too
-        db.collection('users').doc(userId).set({ promoCodes: cleanedPC, chkDiscounts: cleanedCD }, { merge: true });
     }
 
     try {
@@ -2218,16 +2102,24 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
     } catch(e) { console.error('Ошибка отправки:', e); }
 };
 
+        const handleScreenChange = useCallback((screen) => {
+            setActiveScreen(screen);
+        }, []);
+
+        const openAdminFromHome = useCallback(() => { setAdminPanelFromProfile(false); setIsAdminPanelOpen(true); }, []);
+        const openAdminFromProfile = useCallback(() => { setAdminPanelFromProfile(true); setIsAdminPanelOpen(true); }, []);
+        const closeAdmin = useCallback(() => setIsAdminPanelOpen(false), []);
+
         return (
             <div className="min-h-screen app-bg pb-20">
                 <div className="container">
-                    {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} />}
-                    {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} />}
-                    {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} products={products} />}
-                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} products={products} />}
+                    {activeScreen==='home'&&<Home key="home" addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={openAdminFromHome} />}
+                    {activeScreen==='favorites'&&<Favorites key="fav" favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} />}
+                    {activeScreen==='cart'&&<Cart key="cart" cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} products={products} />}
+                    {activeScreen==='profile'&&<Profile key="profile" orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={openAdminFromProfile} tgUser={tgUser} products={products} />}
                 </div>
-                <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
-                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
+                <BottomNav activeScreen={activeScreen} onScreenChange={handleScreenChange} cartCount={cart.length} favCount={favorites.length} />
+                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={closeAdmin} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
     }
