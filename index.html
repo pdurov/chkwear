@@ -14,12 +14,16 @@
       function applyTgPadding() {
         window.applyTgPadding = applyTgPadding;
         var tg = window.Telegram && window.Telegram.WebApp;
-        var top = 60; // minimum to clear Telegram close button
-        if (tg) {
-          var ct = tg.contentSafeAreaInset && tg.contentSafeAreaInset.top || 0;
-          var st = tg.safeAreaInset && tg.safeAreaInset.top || 0;
-          top = Math.max(top, ct, st);
-        }
+        // Only apply in Telegram (not desktop browser)
+        var isTelegram = tg && tg.initData && tg.initData.length > 0;
+        if (!isTelegram) return;
+        // Only apply on mobile (width < 768)
+        if (window.innerWidth >= 768) return;
+        var top = 0;
+        if (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) top = tg.contentSafeAreaInset.top;
+        else if (tg.safeAreaInset && tg.safeAreaInset.top) top = tg.safeAreaInset.top;
+        // Add enough to clear Telegram's close button in fullscreen
+        top = Math.max(top, 70);
         var root = document.getElementById('root');
         if (root) root.style.paddingTop = top + 'px';
       }
@@ -441,7 +445,19 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <h3 className="app-text mb-1">✉️ Личное сообщение</h3>
                             <p className="app-text-secondary text-sm">Написать конкретному пользователю от имени бота</p>
                         </button>
-                        <button onClick={async()=>{setActiveTab('stats');setStatsLoading(true);try{const db=window.__firebaseDb;const snap=await db.collection('users').get();const users=snap.docs.map(d=>d.data());const totalOrders=users.reduce((s,u)=>s+(u.orders||[]).length,0);const totalRevenue=users.reduce((s,u)=>{return s+(u.orders||[]).reduce((ss,o)=>ss+(o.finalTotal||o.total||0),0);},0);const avgCoins=users.length?Math.round(users.reduce((s,u)=>s+(u.chkCoins||0),0)/users.length):0;setStats({total:users.length,withOrders:users.filter(u=>(u.orders||[]).length>0).length,totalOrders,totalRevenue:totalRevenue.toFixed(0),avgCoins});}catch(e){setStats({error:e.message});}setStatsLoading(false);}} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                        <button onClick={async()=>{
+                            setActiveTab('stats');setStatsLoading(true);
+                            try{
+                                const db=window.__firebaseDb;
+                                const snap=await db.collection('users').get();
+                                const users=snap.docs.map(d=>d.data());
+                                const totalOrders=users.reduce((s,u)=>s+(u.orders||[]).length,0);
+                                const totalRevenue=users.reduce((s,u)=>s+(u.orders||[]).reduce((ss,o)=>ss+(o.finalTotal||o.total||0),0),0);
+                                const avgCoins=users.length?Math.round(users.reduce((s,u)=>s+(u.chkCoins||0),0)/users.length):0;
+                                setStats({total:users.length,withOrders:users.filter(u=>(u.orders||[]).length>0).length,totalOrders,totalRevenue:totalRevenue.toFixed(0),avgCoins});
+                            }catch(e){setStats({error:e.message});}
+                            setStatsLoading(false);
+                        }} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
                             <h3 className="app-text mb-1">📊 Статистика</h3>
                             <p className="app-text-secondary text-sm">Пользователи, заказы, выручка</p>
                         </button>
@@ -465,92 +481,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     </div>
                 </div>
                 {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
-            </div>
-        );
-
-        if (activeTab === 'dm') return (
-            <div className="admin-modal" onClick={onClose}>
-                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
-                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
-                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
-                        <h2 className="app-text">Личное сообщение</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                        {dmResult ? (
-                            <div className="text-center py-6">
-                                <div style={{fontSize:'2.5rem'}} className="mb-3">✉️</div>
-                                <p className="app-text font-bold mb-1">Отправлено!</p>
-                                <p className="app-text-secondary text-sm">{dmResult}</p>
-                                <button onClick={()=>{setDmResult(null);setDmText('');}} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">Ещё</button>
-                            </div>
-                        ) : (<>
-                            <div><label className="block app-text mb-2">Юзернейм или ID получателя</label><input value={dmUsername} onChange={e=>setDmUsername(e.target.value)} className="app-card app-text app-border w-full" placeholder="@username или 123456789" /></div>
-                            <div><label className="block app-text mb-2">Текст сообщения</label><textarea value={dmText} onChange={e=>setDmText(e.target.value)} className="app-card app-text app-border w-full" rows="5" placeholder="Ваш заказ готов к отправке..." style={{resize:'none'}} /></div>
-                            <div className="app-card border app-border rounded-xl p-3"><p className="app-text-secondary text-sm">💡 Поддерживается HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;</p></div>
-                            <button onClick={async()=>{
-                                if(!dmUsername.trim()||!dmText.trim()){setNotification('Заполните все поля');return;}
-                                setDmSending(true);
-                                const db=window.__firebaseDb;
-                                let chatId=dmUsername.replace('@','').trim();
-                                // Try to find user ID by username in Firebase
-                                if(!/^\d+$/.test(chatId)&&db){
-                                    try{
-                                        const snap=await db.collection('users').get();
-                                        snap.forEach(doc=>{const d=doc.data();if(d.username&&d.username.toLowerCase()===chatId.toLowerCase())chatId=doc.id;});
-                                    }catch(e){}
-                                }
-                                try{
-                                    const r=await fetch('https://royal-disk-c66a.external-all666.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'dm',chatId,text:dmText})});
-                                    const data=await r.json();
-                                    if(data.ok)setDmResult(`Сообщение отправлено → ${dmUsername}`);
-                                    else setNotification('Ошибка: пользователь не найден или не писал боту');
-                                }catch(e){setNotification('Ошибка: '+e.message);}
-                                setDmSending(false);
-                            }} disabled={dmSending||!dmUsername.trim()||!dmText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                                {dmSending?'⏳ Отправляем...':'✉️ Отправить'}
-                            </button>
-                        </>)}
-                    </div>
-                </div>
-                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
-            </div>
-        );
-
-        if (activeTab === 'stats') return (
-            <div className="admin-modal" onClick={onClose}>
-                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
-                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
-                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
-                        <h2 className="app-text">Статистика</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
-                    </div>
-                    <div className="p-6">
-                        {statsLoading ? (
-                            <div className="flex justify-center py-10"><div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}} /></div>
-                        ) : stats?.error ? (
-                            <p className="text-red-500 text-center">{stats.error}</p>
-                        ) : stats ? (
-                            <div className="space-y-3">
-                                {[
-                                    {icon:'👥', label:'Всего пользователей', value:stats.total, color:'#3b82f6'},
-                                    {icon:'🛍', label:'Делали заказы', value:stats.withOrders, color:'#8b5cf6'},
-                                    {icon:'📦', label:'Всего заказов', value:stats.totalOrders, color:'#10b981'},
-                                    {icon:'💵', label:'Общая выручка', value:`$${stats.totalRevenue}`, color:'#ca8a04'},
-                                    {icon:'🎰', label:'Средний баланс CHK', value:`${stats.avgCoins} CHK`, color:'#ef4444'},
-                                ].map((s,i)=>(
-                                    <div key={i} className="app-card border app-border rounded-xl p-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <span style={{fontSize:'1.5rem'}}>{s.icon}</span>
-                                            <p className="app-text text-sm">{s.label}</p>
-                                        </div>
-                                        <p style={{color:s.color,fontWeight:'bold',fontSize:'1.2rem'}}>{s.value}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
             </div>
         );
 
@@ -599,6 +529,102 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 {broadcastSending ? '⏳ Отправляем...' : '📢 Отправить всем'}
                             </button>
                         </>)}
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
+        if (activeTab === 'dm') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Личное сообщение</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {dmResult ? (
+                            <div className="text-center py-6">
+                                <div style={{fontSize:'2.5rem'}} className="mb-3">✉️</div>
+                                <p className="app-text font-bold mb-1">Отправлено!</p>
+                                <p className="app-text-secondary text-sm">{dmResult}</p>
+                                <button onClick={()=>{setDmResult(null);setDmText('');}} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">Ещё</button>
+                            </div>
+                        ) : (<>
+                            <div><label className="block app-text mb-2">Юзернейм или ID</label><input value={dmUsername} onChange={e=>setDmUsername(e.target.value)} className="app-card app-text app-border w-full" placeholder="@username или 123456789" /></div>
+                            <div><label className="block app-text mb-2">Текст сообщения</label><textarea value={dmText} onChange={e=>setDmText(e.target.value)} className="app-card app-text app-border w-full" rows="5" placeholder="Ваш заказ отправлен..." style={{resize:'none'}} /></div>
+                            <div className="app-card border app-border rounded-xl p-3"><p className="app-text-secondary text-sm">💡 HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;</p></div>
+                            <button onClick={async()=>{
+                                if(!dmUsername.trim()||!dmText.trim()){setNotification('Заполните все поля');return;}
+                                setDmSending(true);
+                                let chatId=dmUsername.replace('@','').trim();
+                                if(!/^\d+$/.test(chatId)){
+                                    try{const snap=await window.__firebaseDb.collection('users').get();snap.forEach(doc=>{const d=doc.data();if(d.username&&d.username.toLowerCase()===chatId.toLowerCase())chatId=doc.id;});}catch(e){}
+                                }
+                                try{
+                                    const r=await fetch('https://royal-disk-c66a.external-all666.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'dm',chatId,text:dmText})});
+                                    const data=await r.json();
+                                    if(data.ok)setDmResult(`Сообщение отправлено → ${dmUsername}`);
+                                    else setNotification('Ошибка: пользователь не найден или не писал боту');
+                                }catch(e){setNotification('Ошибка: '+e.message);}
+                                setDmSending(false);
+                            }} disabled={dmSending||!dmUsername.trim()||!dmText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                                {dmSending?'⏳ Отправляем...':'✉️ Отправить'}
+                            </button>
+                        </>)}
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
+        if (activeTab === 'stats') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Статистика</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6">
+                        {statsLoading ? (
+                            <div className="flex justify-center py-10"><div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}} /></div>
+                        ) : stats?.error ? (
+                            <p className="text-red-500 text-center">{stats.error}</p>
+                        ) : stats ? (<>
+                            <div className="space-y-3 mb-6">
+                                {[
+                                    {icon:'👥',label:'Всего пользователей',value:stats.total,color:'#3b82f6'},
+                                    {icon:'🛍',label:'Делали заказы',value:stats.withOrders,color:'#8b5cf6'},
+                                    {icon:'📦',label:'Всего заказов',value:stats.totalOrders,color:'#10b981'},
+                                    {icon:'💵',label:'Общая выручка',value:`$${stats.totalRevenue}`,color:'#ca8a04'},
+                                    {icon:'🎰',label:'Средний баланс CHK',value:`${stats.avgCoins} CHK`,color:'#ef4444'},
+                                ].map((s,i)=>(
+                                    <div key={i} className="app-card border app-border rounded-xl p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3"><span style={{fontSize:'1.4rem'}}>{s.icon}</span><p className="app-text text-sm">{s.label}</p></div>
+                                        <p style={{color:s.color,fontWeight:'bold',fontSize:'1.2rem'}}>{s.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <button onClick={async()=>{
+                                if(!window.confirm('Очистить статистику заказов у всех пользователей? Это нельзя отменить.'))return;
+                                try{
+                                    const db=window.__firebaseDb;
+                                    const snap=await db.collection('users').get();
+                                    const batch=db.batch();
+                                    snap.docs.forEach(doc=>batch.update(doc.ref,{orders:[]}));
+                                    await batch.commit();
+                                    const oSnap=await db.collection('orders').get();
+                                    const batch2=db.batch();
+                                    oSnap.docs.forEach(doc=>batch2.delete(doc.ref));
+                                    await batch2.commit();
+                                    setNotification('Статистика очищена');setStats(s=>({...s,totalOrders:0,withOrders:0}));
+                                }catch(e){setNotification('Ошибка: '+e.message);}
+                            }} className="w-full py-3 rounded-xl border text-red-500 app-border hover:bg-red-50 transition-colors text-sm font-medium">
+                                🗑 Очистить всю статистику заказов
+                            </button>
+                        </>) : null}
                     </div>
                 </div>
                 {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
@@ -1273,7 +1299,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [reviewText, setReviewText] = useState('');
         const [reviewRating, setReviewRating] = useState(5);
         const [reviewSent, setReviewSent] = useState(false);
-        const [reviewAnon, setReviewAnon] = useState(false);
         const safeOrders = (orders||[]).filter(o => o && o.id);
         const getStatus = s=>({
             pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},
@@ -1291,13 +1316,18 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             const WORKER_URL = 'https://royal-disk-c66a.external-all666.workers.dev';
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
             const stars = '⭐'.repeat(reviewRating);
-            const authorLabel = reviewAnon ? 'Анонимно' : `${tgUser?.first_name||''}${tgUser?.username?' (@'+tgUser.username+')':''}`;
-            const msg = `💬 Новый отзыв!\n\n${stars} (${reviewRating}/5)\n📦 Заказ: ${reviewOrder?.displayId||reviewOrder?.id}\n👤 От: ${authorLabel}\n\n"${reviewText}"`;
+            const msg = `💬 Новый отзыв!\n\n${stars} (${reviewRating}/5)\n📦 Заказ: ${reviewOrder?.displayId||reviewOrder?.id}\n👤 От: ${tgUser?.first_name||''}${tgUser?.username?' (@'+tgUser.username+')':''}\n\n"${reviewText}"`;
             try {
-                await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'notify_admin', text: msg }) });
+                // Send via worker to avoid CORS
+                await fetch(WORKER_URL, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ type: 'notify_admin', text: msg })
+                });
                 const db = window.__firebaseDb;
                 if (db) {
-                    await db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: reviewAnon ? null : tgUser?.first_name, username: reviewAnon ? null : tgUser?.username, anonymous: reviewAnon, date: new Date().toLocaleDateString('ru-RU') });
+                    // Save review
+                    await db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: tgUser?.first_name, date: new Date().toLocaleDateString('ru-RU') });
+                    // Mark order as reviewed so button disappears
                     await db.collection('orders').doc(reviewOrder?.id).set({ reviewLeft: true }, { merge: true });
                 }
             } catch(e) { console.error(e); }
@@ -1329,18 +1359,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <p className="app-text mb-2">Комментарий:</p>
                             <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} className="app-card app-text app-border w-full" rows="4" placeholder="Расскажите о вашем опыте..." style={{resize:'none'}} />
                         </div>
-                        <button onClick={()=>setReviewAnon(a=>!a)} className="w-full app-card border rounded-xl p-3 flex items-center justify-between transition-all" style={{borderColor: reviewAnon?'#6b7280':'#3b82f6'}}>
-                            <div className="flex items-center gap-3">
-                                <span style={{fontSize:'1.3rem'}}>{reviewAnon?'🕵️':'👤'}</span>
-                                <div className="text-left">
-                                    <p className="app-text text-sm font-medium">{reviewAnon?'Анонимный отзыв':'Отзыв от вашего имени'}</p>
-                                    <p className="app-text-secondary text-xs">{reviewAnon?'Ваше имя скрыто':'Ник в Telegram будет виден всем'}</p>
-                                </div>
-                            </div>
-                            <div style={{width:'44px',height:'24px',borderRadius:'12px',background:reviewAnon?'#6b7280':'#3b82f6',position:'relative',transition:'background 0.2s',flexShrink:0}}>
-                                <div style={{position:'absolute',top:'3px',left:reviewAnon?'3px':'23px',width:'18px',height:'18px',borderRadius:'50%',background:'white',transition:'left 0.2s'}}/>
-                            </div>
-                        </button>
                         <button onClick={sendReview} disabled={!reviewText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50">Отправить отзыв</button>
                     </div>
                 )}
@@ -1449,14 +1467,32 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     function ReferralScreen({ onBack, referralCode, referralStats }) {
     const [copied, setCopied] = useState(false);
     const botLink = `https://t.me/chkwear_bot?start=${referralCode}`;
+    const shareText = '🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!';
     
     const shareLink = () => {
         const tg = window.Telegram?.WebApp;
-        tg?.expand();
-        if (tg) {
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`);
+        // Proper Telegram share via tg://msg_url deep link
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(shareText)}`;
+        if (tg?.openTelegramLink) {
+            tg.openTelegramLink(shareUrl);
         } else {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`, '_blank');
+            window.open(shareUrl, '_blank');
+        }
+    };
+
+    const copyLink = () => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(botLink).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);}).catch(()=>{});
+        } else {
+            // Fallback for no clipboard API
+            const ta = document.createElement('textarea');
+            ta.value = botLink;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            setCopied(true);
+            setTimeout(()=>setCopied(false),2000);
         }
     };
 
@@ -1471,7 +1507,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <p className="text-blue-600 text-sm">{botLink}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                    <button onClick={()=>{navigator.clipboard.writeText(botLink);setCopied(true);setTimeout(()=>setCopied(false),2000)}} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl transition-colors">
+                    <button onClick={copyLink} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl transition-colors">
                         <CopyIcon /><span>{copied?'Скопировано!':'Копировать'}</span>
                     </button>
                     <button onClick={shareLink} className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
@@ -1588,15 +1624,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <div key={r.id} className="app-card rounded-xl p-4 border app-border">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{background: r.anonymous ? 'rgba(107,114,128,0.15)' : 'rgba(59,130,246,0.15)',fontSize:'0.9rem',fontWeight:700,color: r.anonymous ? '#6b7280' : '#3b82f6'}}>
-                                            {r.anonymous ? '?' : (r.userName||'?')[0].toUpperCase()}
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:'rgba(59,130,246,0.15)',fontSize:'0.9rem',fontWeight:700,color:'#3b82f6'}}>
+                                            {(r.userName||'?')[0].toUpperCase()}
                                         </div>
-                                        {r.anonymous
-                                            ? <span className="app-text-secondary text-sm italic">Анонимно</span>
-                                            : r.username
-                                                ? <a href={`https://t.me/${r.username}`} target="_blank" rel="noopener noreferrer" style={{color:'#3b82f6',fontWeight:500,fontSize:'0.875rem'}}>@{r.username}</a>
-                                                : <span className="app-text text-sm font-medium">{r.userName||'Покупатель'}</span>
-                                        }
+                                        <span className="app-text text-sm font-medium">{r.userName||'Покупатель'}</span>
                                     </div>
                                     <span className="app-text-secondary text-xs">{r.date}</span>
                                 </div>
@@ -1708,55 +1739,44 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [dealerHand,setDealerHand]=useState([]);
         const [bet,setBet]=useState('');
         const [winMsg,setWinMsg]=useState('');
-        const [doubled,setDoubled]=useState(false);
         const [insuranceTaken,setInsuranceTaken]=useState(false);
         const [insurancePaid,setInsurancePaid]=useState(0);
         const isInf = chkCoins===Infinity;
+        const bNum=()=>parseInt(bet)||0;
         const createCard=()=>{const suits=['♠','♥','♦','♣'],vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];return{suit:suits[Math.floor(Math.random()*4)],value:vals[Math.floor(Math.random()*13)]};};
         const calcHand=hand=>{let v=0,a=0;hand.forEach(c=>{if(c.value==='A'){a++;v+=11;}else if(['J','Q','K'].includes(c.value))v+=10;else v+=parseInt(c.value);});while(v>21&&a>0){v-=10;a--;}return v;};
         const isNatural=hand=>hand.length===2&&calcHand(hand)===21;
-        const betNum=()=>parseInt(bet)||0;
         const startBJ=()=>{
-            const b=betNum();
-            if(b<10||(!isInf&&b>chkCoins))return;
+            const b=bNum();if(b<10||(!isInf&&b>chkCoins))return;
             if(!isInf)setChkCoins(p=>p-b);
             const ph=[createCard(),createCard()],dh=[createCard(),createCard()];
-            setPlayerHand(ph);setDealerHand(dh);setDoubled(false);setInsuranceTaken(false);setInsurancePaid(0);setWinMsg('');
+            setPlayerHand(ph);setDealerHand(dh);setInsuranceTaken(false);setInsurancePaid(0);setWinMsg('');
             if(isNatural(ph)&&isNatural(dh)){if(!isInf)setChkCoins(p=>p+b);setWinMsg('Ничья — два блэкджека!');setGameState('push');}
             else if(isNatural(ph)){const w=Math.floor(b*1.5);if(!isInf)setChkCoins(p=>p+b+w);setWinMsg(`🃏 Блэкджек! +${b+w} CHK (3:2)`);setGameState('won');}
             else{setGameState('playing');}
         };
-        const hit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21){setWinMsg('💥 Перебор!');setGameState('lost');}};
-        const takeInsurance=()=>{
-            const ins=Math.floor(betNum()/2);
-            if(!isInf&&ins>chkCoins)return;
-            if(!isInf)setChkCoins(p=>p-ins);
-            setInsuranceTaken(true);setInsurancePaid(ins);
-        };
-        const doDouble=()=>{
-            const b=betNum();
-            if(!isInf&&b>chkCoins)return;
-            if(!isInf)setChkCoins(p=>p-b);
-            setDoubled(true);
+        const bjHit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21){setWinMsg('💥 Перебор!');setGameState('lost');}};
+        const bjInsurance=()=>{const ins=Math.floor(bNum()/2);if(!isInf&&ins>chkCoins)return;if(!isInf)setChkCoins(p=>p-ins);setInsuranceTaken(true);setInsurancePaid(ins);};
+        const bjDouble=()=>{
+            const b=bNum();if(!isInf&&b>chkCoins)return;if(!isInf)setChkCoins(p=>p-b);
             const h=[...playerHand,createCard()];setPlayerHand(h);
-            if(calcHand(h)>21){setWinMsg(`💥 Перебор при удвоении! (-${b*2} CHK)`);setGameState('lost');return;}
+            if(calcHand(h)>21){setWinMsg(`💥 Перебор! (-${b*2} CHK)`);setGameState('lost');return;}
             let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
             const pv=calcHand(h),dv=calcHand(d),tb=b*2;
-            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+tb*2);setWinMsg(`✅ Победа с удвоением! +${tb*2} CHK`);setGameState('won');}
-            else if(pv===dv){if(!isInf)setChkCoins(p=>p+tb);setWinMsg('Ничья при удвоении');setGameState('push');}
-            else{setWinMsg(`❌ Проигрыш при удвоении (-${tb} CHK)`);setGameState('lost');}
+            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+tb*2);setWinMsg(`✅ Победа с x2! +${tb*2} CHK`);setGameState('won');}
+            else if(pv===dv){if(!isInf)setChkCoins(p=>p+tb);setWinMsg('Ничья при x2');setGameState('push');}
+            else{setWinMsg(`❌ Проигрыш при x2`);setGameState('lost');}
         };
-        const stand=()=>{
-            const b=betNum();
-            let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
+        const bjStand=()=>{
+            const b=bNum();let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
             const pv=calcHand(playerHand),dv=calcHand(d);
-            const insReturn=insuranceTaken&&isNatural(d)?insurancePaid*3:0; // insurance pays 2:1 + return stake
+            const insReturn=insuranceTaken&&isNatural(d)?insurancePaid*3:0;
             if(!isInf&&insReturn>0)setChkCoins(p=>p+insReturn);
-            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+b*2);setWinMsg(`✅ Победа! +${b*2} CHK${insReturn?` (+${insReturn} страховка)`:''}`);;setGameState('won');}
+            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+b*2);setWinMsg(`✅ Победа! +${b*2} CHK${insReturn?' (+'+insReturn+' страховка)':''}`);;setGameState('won');}
             else if(pv===dv){if(!isInf)setChkCoins(p=>p+b);setWinMsg('Ничья');setGameState('push');}
-            else{setWinMsg(`❌ Проигрыш${insReturn?` (+${insReturn} CHK страховка)`:''}`);;setGameState('lost');}
+            else{setWinMsg(`❌ Проигрыш${insReturn?' (+'+insReturn+' CHK страховка)':''}`);;setGameState('lost');}
         };
-        const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);setWinMsg('');setDoubled(false);setInsuranceTaken(false);setInsurancePaid(0);};
+        const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);setWinMsg('');setInsuranceTaken(false);setInsurancePaid(0);};
 
         const convertToDiscount=()=>{
             const amount=parseInt(convertAmount);
@@ -1798,16 +1818,22 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <button onClick={startBJ} disabled={!bet||parseInt(bet)<10||parseInt(bet)>chkCoins} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Начать игру</button>
                 </div>)}
                 {gameState!=='idle'&&(<div className="space-y-4">
-                    <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Дилер {gameState==='playing'?'(?)':'('+calcHand(dealerHand)+')'}</h3><div className="flex flex-wrap gap-2">{dealerHand.map((c,i)=><div key={i} style={{minWidth:'52px',background:gameState==='playing'&&i===1?'#374151':'white',border:`2px solid ${gameState==='playing'&&i===1?'#374151':'#d1d5db'}`,borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:['♥','♦'].includes(c.suit)?'#ef4444':'#111',fontWeight:'bold'}}>{gameState==='playing'&&i===1?'🂠':`${c.value}${c.suit}`}</div>)}</div></div>
-                    <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Вы ({calcHand(playerHand)})</h3><div className="flex flex-wrap gap-2">{playerHand.map((c,i)=><div key={i} style={{minWidth:'52px',background:'white',border:'2px solid #3b82f6',borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:['♥','♦'].includes(c.suit)?'#ef4444':'#111',fontWeight:'bold'}}>{c.value}{c.suit}</div>)}</div></div>
+                    <div className="app-card rounded-xl p-4">
+                        <h3 className="app-text mb-2">Дилер {gameState==='playing'?'(?)':'('+calcHand(dealerHand)+')'}</h3>
+                        <div className="flex flex-wrap gap-2">{dealerHand.map((c,i)=><div key={i} style={{minWidth:'50px',background:gameState==='playing'&&i===1?'#1e3a5f':'white',border:`2px solid ${gameState==='playing'&&i===1?'#1e3a5f':'#d1d5db'}`,borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:gameState==='playing'&&i===1?'white':(['♥','♦'].includes(c.suit)?'#ef4444':'#111'),fontWeight:'bold'}}>{gameState==='playing'&&i===1?'🂠':`${c.value}${c.suit}`}</div>)}</div>
+                    </div>
+                    <div className="app-card rounded-xl p-4">
+                        <h3 className="app-text mb-2">Вы ({calcHand(playerHand)})</h3>
+                        <div className="flex flex-wrap gap-2">{playerHand.map((c,i)=><div key={i} style={{minWidth:'50px',background:'white',border:'2px solid #3b82f6',borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:['♥','♦'].includes(c.suit)?'#ef4444':'#111',fontWeight:'bold'}}>{c.value}{c.suit}</div>)}</div>
+                    </div>
                     {gameState==='playing'&&<div className="space-y-2">
-                        {dealerHand[0]?.value==='A'&&!insuranceTaken&&<button onClick={takeInsurance} className="w-full py-2 rounded-xl text-sm border app-border app-text hover:bg-blue-50 transition-colors">🛡 Страховка (½ставки)</button>}
-                        <div className="grid gap-2" style={{gridTemplateColumns: betNum()<=chkCoins||isInf ? '1fr 1fr 1fr' : '1fr 1fr'}}>
-                            <button onClick={hit} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-medium">Ещё</button>
-                            <button onClick={stand} className="bg-gray-600 text-white py-3 rounded-xl hover:bg-gray-700 font-medium">Стоп</button>
-                            {(playerHand.length===2&&(isInf||betNum()<=chkCoins))&&<button onClick={doDouble} className="bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 font-medium text-sm">2x</button>}
+                        {dealerHand[0]?.value==='A'&&!insuranceTaken&&<button onClick={bjInsurance} className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 text-sm font-medium">🛡 Страховка (½ ставки)</button>}
+                        <div className="grid gap-3" style={{gridTemplateColumns:(isInf||bNum()<=chkCoins)&&playerHand.length===2?'1fr 1fr 1fr':'1fr 1fr'}}>
+                            <button onClick={bjHit} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold text-lg">Ещё</button>
+                            <button onClick={bjStand} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold text-lg">Стоп</button>
+                            {playerHand.length===2&&(isInf||bNum()<=chkCoins)&&<button onClick={bjDouble} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-bold text-lg">x2</button>}
                         </div>
-                        {insuranceTaken&&<p className="text-center text-xs app-text-secondary">🛡 Страховка принята (+{insurancePaid} CHK)</p>}
+                        {insuranceTaken&&<p className="text-center text-xs app-text-secondary">🛡 Страховка {insurancePaid} CHK принята</p>}
                     </div>}
                     {gameState==='won'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(22,163,74,0.1)'}}><p style={{color:'#16a34a',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
                     {gameState==='lost'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(239,68,68,0.1)'}}><p style={{color:'#ef4444',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
@@ -1955,19 +1981,22 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         const [referralCode] = useState(() => {
             const saved = localStorage.getItem('userReferralCode');
             if (saved) return saved;
-            const code = 'CHKWEAR' + Math.random().toString(36).substring(2,8).toUpperCase();
+            const code = 'CHK' + Math.random().toString(36).substring(2,8).toUpperCase();
             localStorage.setItem('userReferralCode', code);
             return code;
         });
-        const [referralStats] = useState({ referralsCount:0, cashback:0 });
+        const [referralStats, setReferralStats] = useState({ referralsCount:0, cashback:0 });
         const tg = window.Telegram?.WebApp;
-        if (tg) { 
-          tg.expand(); 
-          tg.requestFullscreen?.();
-          setTimeout(() => window.applyTgPadding?.(), 300);
-        }
-const tgUser = tg?.initDataUnsafe?.user;
-const startParam = tg?.initDataUnsafe?.start_param;
+        const isTelegram = !!(tg?.initData?.length);
+        try {
+          if (tg && isTelegram) { 
+            tg.expand(); 
+            tg.requestFullscreen?.();
+            setTimeout(() => window.applyTgPadding?.(), 300);
+          }
+        } catch(e) { console.log('TG init:', e); }
+        const tgUser = isTelegram ? tg?.initDataUnsafe?.user : null;
+        const startParam = isTelegram ? tg?.initDataUnsafe?.start_param : null;
 useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
@@ -2024,7 +2053,14 @@ useEffect(() => {
                 } catch(e) { setOrders(data.orders); }
             }
         }
-        db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
+        db.collection('users').doc(userId).set({ referralCode, username: tgUser?.username || '' }, { merge: true });
+        // Load referral stats
+        db.collection('users').doc(userId).get().then(d => {
+            if (d.exists) {
+                const refs = d.data().referrals || [];
+                setReferralStats({ referralsCount: refs.length, cashback: refs.length * 1000 });
+            }
+        });
         setUserDataLoaded(true);
     }).catch(() => setUserDataLoaded(true));
 }, [tgUser?.id]);
@@ -2048,29 +2084,29 @@ useEffect(() => {
         useEffect(() => {
             const saved = localStorage.getItem('theme');
             if (saved) setTheme(saved);
-            const urlParams = new URLSearchParams(window.location.search);
- if (tgUser?.id === 1910027948) {
-    setIsAdmin(true);
-    if (startParam && tgUser && startParam !== referralCode) {
-    const db = window.__firebaseDb;
-    if (db) {
-        const inviterQuery = db.collection('users').where('referralCode', '==', startParam);
-        inviterQuery.get().then(snap => {
-            if (!snap.empty) {
-                const inviterDoc = snap.docs[0];
-                const inviterData = inviterDoc.data();
-                const alreadyReferrals = inviterData.referrals || [];
-                if (!alreadyReferrals.includes(tgUser.id.toString())) {
-                    inviterDoc.ref.update({
-                        referrals: [...alreadyReferrals, tgUser.id.toString()],
-                        chkCoins: (inviterData.chkCoins || 0) + 1000
+            if (tgUser?.id === 1910027948) setIsAdmin(true);
+            // Process referral for ALL users
+            if (startParam && tgUser && startParam !== referralCode) {
+                const db = window.__firebaseDb;
+                if (db) {
+                    const userId = tgUser.id.toString();
+                    db.collection('users').where('referralCode', '==', startParam).get().then(snap => {
+                        if (!snap.empty) {
+                            const inviterDoc = snap.docs[0];
+                            const inviterData = inviterDoc.data();
+                            const alreadyReferrals = inviterData.referrals || [];
+                            if (!alreadyReferrals.includes(userId)) {
+                                inviterDoc.ref.update({
+                                    referrals: [...alreadyReferrals, userId],
+                                    chkCoins: (inviterData.chkCoins || 0) + 1000
+                                });
+                            }
+                        }
                     });
+                    // Save who referred this user
+                    db.collection('users').doc(userId).set({ referredBy: startParam }, { merge: true });
                 }
             }
-        });
-    }
-}
-}
         }, []);
 
         useEffect(() => {
@@ -2138,15 +2174,24 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
     setCart([]);
     saveUserData(favorites, [], newOrders);
 
+    // Clean up used bonuses from localStorage AND Firebase
+    const cleanedPC = JSON.parse(localStorage.getItem('promoCodes')||'[]').filter(p=>!p.used);
+    const cleanedCD = JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used);
+    localStorage.setItem('promoCodes', JSON.stringify(cleanedPC));
+    localStorage.setItem('chkDiscounts', JSON.stringify(cleanedCD));
+
     const db = window.__firebaseDb;
     if (db && tgUser?.id) {
+        const userId = tgUser.id.toString();
         db.collection('orders').doc(orderId).set({
             ...newOrder,
-            userId: tgUser.id.toString(),
+            userId,
             userName: tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно',
             username: tgUser?.username || '',
             status: 'pending'
         });
+        // Sync cleaned bonuses to Firebase too
+        db.collection('users').doc(userId).set({ promoCodes: cleanedPC, chkDiscounts: cleanedCD }, { merge: true });
     }
 
     try {
