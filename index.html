@@ -669,7 +669,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             } else setNotification('Неверный промокод');
         };
 
-        const chkDiscountsList = JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used);
+        const [chkDiscountsList, setChkDiscountsList] = React.useState(() => JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used));
+        React.useEffect(() => {
+            setChkDiscountsList(JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used));
+        }, []);
         let subtotal = promoApplied ? parseFloat((total*(1-discount)).toFixed(2)) : total;
         if (chkDiscount > 0) subtotal = parseFloat((subtotal*Math.max(0,1-chkDiscount/100)).toFixed(2));
         const finalTotal = Math.max(0, subtotal + deliveryCost);
@@ -1372,6 +1375,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             setChkCoins(p=>p-amount);
             setConvertAmount('');
             setNotification(`Создан промокод ${code} — скидка ${pct}%`);
+            // Save to Firebase so discounts persist across devices
+            const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            const db = window.__firebaseDb;
+            if (db && tgId) db.collection('users').doc(tgId.toString()).set({ chkDiscounts: cd, promoCodes: pc }, { merge: true }).catch(()=>{});
         };
 
         if(activeTab==='blackjack') return (
@@ -1575,13 +1582,35 @@ useEffect(() => {
     const db = window.__firebaseDb;
     if (!db || !tgUser?.id) return;
     const userId = tgUser.id.toString();
-    db.collection('users').doc(userId).get().then(doc => {
+    db.collection('users').doc(userId).get().then(async doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.favorites) setFavorites(data.favorites);
             if (data.cart) setCart(data.cart);
-            if (data.orders) setOrders(data.orders);
             if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
+
+            // Sync discounts from Firebase to localStorage
+            if (data.chkDiscounts) {
+                const local = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
+                const merged = [...data.chkDiscounts];
+                local.forEach(l => { if (!merged.find(m => m.id === l.id)) merged.push(l); });
+                localStorage.setItem('chkDiscounts', JSON.stringify(merged));
+            }
+            if (data.promoCodes) {
+                const local = JSON.parse(localStorage.getItem('promoCodes')||'[]');
+                const merged = [...data.promoCodes];
+                local.forEach(l => { if (!merged.find(m => m.code === l.code)) merged.push(l); });
+                localStorage.setItem('promoCodes', JSON.stringify(merged));
+            }
+
+            if (data.orders) {
+                try {
+                    const orderSnap = await db.collection('orders').where('userId','==',userId).get();
+                    const statusMap = {};
+                    orderSnap.forEach(d => { statusMap[d.data().id] = d.data().status; });
+                    setOrders(data.orders.map(o => statusMap[o.id] ? {...o, status: statusMap[o.id]} : o));
+                } catch(e) { setOrders(data.orders); }
+            }
         }
         db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
         setUserDataLoaded(true);
@@ -1648,7 +1677,9 @@ useEffect(() => {
     const userId = tgUser.id.toString();
     const clean = obj => JSON.parse(JSON.stringify(obj, (k, v) => v === undefined ? null : v));
     const strip = items => items.map(p => {
-        const { imageUrl, images, ...rest } = p;
+        const { images, ...rest } = p;
+        // Keep imageUrl only if it's a real URL (not base64)
+        if (rest.imageUrl && rest.imageUrl.startsWith('data:')) delete rest.imageUrl;
         return clean(rest);
     });
     try {
@@ -1656,7 +1687,7 @@ useEffect(() => {
             favorites: strip(newFavorites),
             cart: strip(newCart),
             orders: clean(newOrders.map(o => ({ ...o, items: strip(o.items) })))
-        });
+        }, { merge: true });
     } catch(e) { console.error('saveUserData error:', e); }
 };
 
