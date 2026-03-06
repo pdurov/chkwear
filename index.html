@@ -28,7 +28,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f9fafb; color: #111827; }
-        #root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+        #root { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .tg-header-safe { padding-top: max(env(safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)); }
         .dark-theme { background-color: #0a1628 !important; color: #e8edf4 !important; }
         .dark-theme .app-bg { background-color: #0a1628; }
         .dark-theme .app-card { background-color: #13243a; border-color: #1e3a5f; }
@@ -986,7 +987,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         </div>
                     </div>
                 </div>
-                <div className="p-4 pb-3 flex items-center justify-between">
+                <div className="p-4 pb-3 flex items-center justify-between tg-header-safe">
                     <button onClick={()=>setIsFilterOpen(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><FilterAltIcon /></button>
                     <h1 onClick={()=>setTheme(theme==='light'?'dark':'light')} className="app-text tracking-widest cursor-pointer" style={{fontWeight:900,fontSize:'1.5rem'}}>CHKWEAR</h1>
                     <button onClick={()=>{setIsSearchMode(true);setTimeout(()=>searchInputRef.current?.focus(),100)}} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><SearchIcon /></button>
@@ -1167,18 +1168,23 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         const sendReview = async () => {
             if (!reviewText.trim()) return;
-            const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
-            const ADMIN_ID = '7764829776';
+            const WORKER_URL = 'https://royal-disk-c66a.external-all666.workers.dev';
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
             const stars = '⭐'.repeat(reviewRating);
             const msg = `💬 Новый отзыв!\n\n${stars} (${reviewRating}/5)\n📦 Заказ: ${reviewOrder?.displayId||reviewOrder?.id}\n👤 От: ${tgUser?.first_name||''}${tgUser?.username?' (@'+tgUser.username+')':''}\n\n"${reviewText}"`;
             try {
-                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                // Send via worker to avoid CORS
+                await fetch(WORKER_URL, {
                     method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ chat_id: ADMIN_ID, text: msg })
+                    body: JSON.stringify({ type: 'notify_admin', text: msg })
                 });
                 const db = window.__firebaseDb;
-                if (db) db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: tgUser?.first_name, date: new Date().toLocaleDateString('ru-RU') });
+                if (db) {
+                    // Save review
+                    await db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: tgUser?.first_name, date: new Date().toLocaleDateString('ru-RU') });
+                    // Mark order as reviewed so button disappears
+                    await db.collection('orders').doc(reviewOrder?.id).set({ reviewLeft: true }, { merge: true });
+                }
             } catch(e) { console.error(e); }
             setReviewSent(true);
         };
@@ -1825,8 +1831,8 @@ useEffect(() => {
                 try {
                     const orderSnap = await db.collection('orders').where('userId','==',userId).get();
                     const statusMap = {};
-                    orderSnap.forEach(d => { statusMap[d.data().id] = d.data().status; });
-                    setOrders(data.orders.map(o => statusMap[o.id] ? {...o, status: statusMap[o.id]} : o));
+                    orderSnap.forEach(d => { statusMap[d.data().id] = { status: d.data().status, reviewLeft: d.data().reviewLeft }; });
+                    setOrders(data.orders.map(o => statusMap[o.id] ? {...o, ...statusMap[o.id]} : o));
                 } catch(e) { setOrders(data.orders); }
             }
         }
@@ -1844,7 +1850,7 @@ useEffect(() => {
         snap.docChanges().forEach(change => {
             if (change.type === 'modified') {
                 const updated = change.doc.data();
-                setOrders(prev => prev.map(o => o.id === updated.id ? {...o, status: updated.status} : o));
+                setOrders(prev => prev.map(o => o.id === updated.id ? {...o, status: updated.status, reviewLeft: updated.reviewLeft} : o));
             }
         });
     });
