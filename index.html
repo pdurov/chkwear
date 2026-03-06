@@ -324,7 +324,7 @@
                 }
                 if (!userDoc) { setNotification('Пользователь не найден. Убедитесь что юзер открывал приложение.'); return; }
                 const current = userDoc.data().chkCoins || 0;
-                await userDoc.ref.set({ chkCoins: current + amount }, { merge: true });
+                await userDoc.ref.update({ chkCoins: current + amount });
                 setNotification(`✅ Отправлено ${amount} CHK → @${username}`);
                 setTransferUsername(''); setTransferAmount('');
             } catch(e) { setNotification('Ошибка: ' + e.message); }
@@ -722,7 +722,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 deliveryDetails = `Имя: ${formData.meetingName||''} | Способ: ${typeLabel} | День: ${formData.deliveryDay||''} | Время: ${formData.deliveryTime||''}${formData.deliveryAddress?' | Адрес: '+formData.deliveryAddress:''}`;
             }
             const comment = formData.meetingNote || '';
-            const discountInfo = chkDiscount > 0 ? `CHK скидка ${chkDiscount}%` : '';
+            const originalTotal = parseFloat((total + deliveryCost).toFixed(2));
+            const discountInfo = chkDiscount > 0 ? `скидка ${chkDiscount}%, было $${originalTotal}` : (promoApplied ? `промокод -${Math.round(discount*100)}%` : '');
             onSuccess(dm, deliveryDetails, comment, parseFloat((subtotal + deliveryCost).toFixed(2)), discountInfo);
             onClose();
         };
@@ -1286,8 +1287,11 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             {id:8,value:'Скидка 50$',amount:0,special:true,color:'#fbbf24',emoji:'🎁'},
         ];
 
+        const [lastFirebaseCoins, setLastFirebaseCoins] = React.useState(null);
+
         useEffect(()=>{
             if(chkCoins === Infinity) return;
+            if(chkCoins === lastFirebaseCoins) return; // avoid loop
             localStorage.setItem('chkCoins',chkCoins.toString());
             const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
             const db = window.__firebaseDb;
@@ -1304,6 +1308,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             const unsub = db.collection('users').doc(tgId.toString()).onSnapshot(doc => {
                 if (doc.exists && doc.data().chkCoins !== undefined) {
                     const val = doc.data().chkCoins;
+                    setLastFirebaseCoins(val);
                     setChkCoins(val);
                     localStorage.setItem('chkCoins', val.toString());
                 }
@@ -1570,24 +1575,13 @@ useEffect(() => {
     const db = window.__firebaseDb;
     if (!db || !tgUser?.id) return;
     const userId = tgUser.id.toString();
-    db.collection('users').doc(userId).get().then(async doc => {
+    db.collection('users').doc(userId).get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.favorites) setFavorites(data.favorites);
             if (data.cart) setCart(data.cart);
+            if (data.orders) setOrders(data.orders);
             if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
-            if (data.orders) {
-                // Sync real statuses from orders collection
-                try {
-                    const orderSnap = await db.collection('orders').where('userId','==',userId).get();
-                    const statusMap = {};
-                    orderSnap.forEach(d => { statusMap[d.data().id] = d.data().status; });
-                    const synced = data.orders.map(o => statusMap[o.id] ? {...o, status: statusMap[o.id]} : o);
-                    setOrders(synced);
-                } catch(e) {
-                    setOrders(data.orders);
-                }
-            }
         }
         db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
         setUserDataLoaded(true);
@@ -1715,7 +1709,7 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
         const ADMIN_ID = '7764829776';
         const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice}${i.condition==='new' ? ` (${i.marketplace})` : ' (Used)'}`).join('\n');
         const userName = tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно';
-        const discountLine = discountInfo ? `\n🎟 Скидка: ${discountInfo}` : '';
+        const discountLine = discountInfo ? ` (${discountInfo})` : '';
         const msgText = `🛍 Новый заказ! #${orderId}\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal||total}${discountLine}\n🚚 Доставка: ${dm}\n📋 Детали: ${address||'не указан'}\n📝 Комментарий: ${comment||'нет'}\n\n👤 Покупатель: ${userName}${tgUser?.username?' (@'+tgUser.username+')':''}\n🆔 ID: ${tgUser?.id||'неизвестно'}`;
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
