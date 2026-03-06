@@ -324,7 +324,7 @@
                 }
                 if (!userDoc) { setNotification('Пользователь не найден. Убедитесь что юзер открывал приложение.'); return; }
                 const current = userDoc.data().chkCoins || 0;
-                await userDoc.ref.update({ chkCoins: current + amount });
+                await userDoc.ref.set({ chkCoins: current + amount }, { merge: true });
                 setNotification(`✅ Отправлено ${amount} CHK → @${username}`);
                 setTransferUsername(''); setTransferAmount('');
             } catch(e) { setNotification('Ошибка: ' + e.message); }
@@ -1291,22 +1291,24 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             localStorage.setItem('chkCoins',chkCoins.toString());
             const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
             const db = window.__firebaseDb;
-            if (db && tgId) db.collection('users').doc(tgId.toString()).update({ chkCoins }).catch(()=>{});
+            if (db && tgId) db.collection('users').doc(tgId.toString()).set({ chkCoins }, { merge: true }).catch(()=>{});
         },[chkCoins]);
 
-        // Sync chkCoins from Firebase
+        // Real-time sync chkCoins from Firebase
         useEffect(() => {
             if (isAdminUser) return;
             const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
             if (!tgId) return;
             const db = window.__firebaseDb;
             if (!db) return;
-            db.collection('users').doc(tgId.toString()).get().then(doc => {
+            const unsub = db.collection('users').doc(tgId.toString()).onSnapshot(doc => {
                 if (doc.exists && doc.data().chkCoins !== undefined) {
-                    setChkCoins(doc.data().chkCoins);
-                    localStorage.setItem('chkCoins', doc.data().chkCoins.toString());
+                    const val = doc.data().chkCoins;
+                    setChkCoins(val);
+                    localStorage.setItem('chkCoins', val.toString());
                 }
             });
+            return () => unsub();
         }, []);
 
        const spinWheel = () => {
@@ -1568,13 +1570,24 @@ useEffect(() => {
     const db = window.__firebaseDb;
     if (!db || !tgUser?.id) return;
     const userId = tgUser.id.toString();
-    db.collection('users').doc(userId).get().then(doc => {
+    db.collection('users').doc(userId).get().then(async doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.favorites) setFavorites(data.favorites);
             if (data.cart) setCart(data.cart);
-            if (data.orders) setOrders(data.orders);
             if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
+            if (data.orders) {
+                // Sync real statuses from orders collection
+                try {
+                    const orderSnap = await db.collection('orders').where('userId','==',userId).get();
+                    const statusMap = {};
+                    orderSnap.forEach(d => { statusMap[d.data().id] = d.data().status; });
+                    const synced = data.orders.map(o => statusMap[o.id] ? {...o, status: statusMap[o.id]} : o);
+                    setOrders(synced);
+                } catch(e) {
+                    setOrders(data.orders);
+                }
+            }
         }
         db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
         setUserDataLoaded(true);
