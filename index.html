@@ -151,8 +151,9 @@
         .address-suggestion-item{padding:.75rem 1rem;cursor:pointer;transition:background-color .2s}
         .address-suggestion-item:hover{background-color:#f3f4f6}
         .dark-theme .address-suggestion-item:hover{background-color:#1e3a5f}
-        .marketplace-card{background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);color:white;border-radius:1rem;overflow:hidden;transition:all .3s;position:relative;margin-bottom:1rem}
-        .marketplace-card:hover{transform:translateY(-4px);box-shadow:0 20px 25px -5px rgba(0,0,0,.1)}
+        .marketplace-card{border-radius:1rem;overflow:hidden;transition:all .3s;position:relative;margin-bottom:1rem;border:1px solid #e5e7eb;background:#fff}
+        .marketplace-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .dark-theme .marketplace-card{background:#13243a;border-color:#1e3a5f}
         .delivery-method-card{border-radius:1rem;padding:1rem;text-align:center;transition:all .3s;cursor:pointer;border:2px solid #e5e7eb;background-color:white;color:#111827}
         .delivery-method-card:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
         .delivery-method-card.selected{border-color:#3b82f6;background-color:#eff6ff}
@@ -293,7 +294,8 @@
 
     // ADMIN PANEL
     function AdminPanel({ isOpen, onClose, products, onAddProduct, onDeleteProduct, showTabs }) {
-        const [activeTab, setActiveTab] = useState(showTabs ? 'menu' : 'products');
+        const [activeTab, setActiveTab] = useState('menu');
+        useEffect(() => { if(isOpen) setActiveTab(showTabs ? 'menu' : 'products'); }, [isOpen]);
         const [newProduct, setNewProduct] = useState({ name:'', category:'sneakers', condition:'new', imageUrl:'', description:'', poizonPrice:'', taobaoPrice:'', price:'' });
         const [uploadedImages, setUploadedImages] = useState([]);
         const [notification, setNotification] = useState(null);
@@ -696,13 +698,21 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 const d = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
                 localStorage.setItem('chkDiscounts', JSON.stringify(d.map(x=>x.id===selectedChkDiscount?{...x,used:true}:x)));
             }
-           onSuccess(
-    {europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod],
-    formData.deliveryAddress,
-    formData.meetingNote || '',
-    parseFloat((subtotal + deliveryCost).toFixed(2))
-);
-onClose();
+            const dm = {europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod];
+            // Build full delivery info string
+            let deliveryDetails = '';
+            if (formData.deliveryMethod==='europost') {
+                deliveryDetails = `Отделение: ${formData.europostOffice||''} | ФИО: ${formData.europostName||''} | Тел: ${formData.europostPhone||''}`;
+            } else if (formData.deliveryMethod==='belpost') {
+                deliveryDetails = `Адрес: ${formData.belpostAddress||''} | Индекс: ${formData.belpostIndex||''} | ФИО: ${formData.belpostName||''} | Тел: ${formData.belpostPhone||''}`;
+            } else if (formData.deliveryMethod==='sdek') {
+                deliveryDetails = `Адрес: ${formData.sdekAddress||''} | ФИО: ${formData.sdekName||''} | Тел: ${formData.sdekPhone||''}`;
+            } else if (formData.deliveryMethod==='meeting') {
+                deliveryDetails = formData.deliveryAddress || '';
+            }
+            const comment = formData.meetingNote || '';
+            onSuccess(dm, deliveryDetails, comment, parseFloat((subtotal + deliveryCost).toFixed(2)));
+            onClose();
         };
 
         const today=new Date(), tomorrow=new Date(today), dayAfter=new Date(today);
@@ -832,7 +842,7 @@ onClose();
                         )}
                         {step==='success' && (
                             <div className="space-y-6 text-center">
-                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+                                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{background:'rgba(22,163,74,0.15)'}}><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
                                 <h2 className="app-text" style={{fontSize:'1.5rem'}}>Заказ оформлен!</h2>
                                 <p className="app-text-secondary">Мы свяжемся с вами для подтверждения.</p>
                                 <div className="bg-blue-50 rounded-xl p-4"><p className="app-text-secondary text-sm">По вопросам: <a href="https://t.me/kanefix" className="text-blue-600" style={{textDecoration:'underline'}}>@kanefix</a></p></div>
@@ -1043,13 +1053,13 @@ onClose();
     // ORDERS
     function Orders({ orders, onBack }) {
         const [selected, setSelected] = useState(null);
-        const getStatus = s=>({pending:{label:'В обработке',color:'bg-yellow-100 text-yellow-700'},shipped:{label:'Отправлен',color:'bg-blue-100 text-blue-700'},delivered:{label:'Доставлен',color:'bg-green-100 text-green-600'}}[s]||{label:s,color:'bg-gray-100 text-gray-600'});
+        const getStatus = s=>({pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},cancelled:{label:'Отменено',style:{background:'rgba(239,68,68,0.15)',color:'#ef4444'}},shipped:{label:'В дороге',style:{background:'rgba(139,92,246,0.15)',color:'#8b5cf6'}},delivered:{label:'Принято',style:{background:'rgba(22,163,74,0.15)',color:'#16a34a'}}}[s]||{label:s||'В обработке',style:{background:'rgba(107,114,128,0.15)',color:'#6b7280'}});
         if (selected) return (
             <div className="p-4">
                 <button onClick={()=>setSelected(null)} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад к заказам</button>
                 <div className="mb-6"><h1 className="app-text mb-2">Заказ {selected.id}</h1><p className="app-text-secondary">{selected.date}</p></div>
                 <div className="app-card rounded-xl p-4 mb-4">
-                    <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Статус:</span><span className={`px-3 py-1 rounded-full text-sm ${getStatus(selected.status).color}`}>{getStatus(selected.status).label}</span></div>
+                    <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Статус:</span><span className="px-3 py-1 rounded-full text-sm font-medium" style={getStatus(selected.status).style}>{getStatus(selected.status).label}</span></div>
                     <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Доставка:</span><span className="app-text">{selected.deliveryMethod}</span></div>
                     <div className="flex items-center justify-between"><span className="app-text-secondary">Итого:</span><span className="price-display" style={{fontSize:'1.25rem'}}>${selected.total}</span></div>
                 </div>
@@ -1073,7 +1083,7 @@ onClose();
                     <div className="space-y-3">{orders.map(order=>(
                         <button key={order.id} onClick={()=>setSelected(order)} className="w-full app-card rounded-xl p-4 hover:shadow-md transition-all text-left">
                             <div className="flex items-center justify-between mb-2"><span className="app-text">{order.id}</span><ChevronRightIcon /></div>
-                            <div className="flex items-center justify-between mb-2"><span className="app-text-secondary text-sm">{order.date}</span><span className={`px-2 py-1 rounded-full text-xs ${getStatus(order.status).color}`}>{getStatus(order.status).label}</span></div>
+                            <div className="flex items-center justify-between mb-2"><span className="app-text-secondary text-sm">{order.date}</span><span className="px-2 py-1 rounded-full text-xs font-medium" style={getStatus(order.status).style}>{getStatus(order.status).label}</span></div>
                             <div className="flex items-center justify-between"><span className="app-text-secondary text-sm">{order.items.length} товар(ов)</span><span className="price-display">${order.total}</span></div>
                         </button>
                     ))}</div>
@@ -1179,15 +1189,25 @@ onClose();
 
     // MARKETPLACES
     function MarketplacesScreen({ onBack }) {
+        const items = [
+            { name:'CHKPlace', desc:'Маркетплейс для покупки и продажи', url:'https://t.me/chkplace', icon:'🛍', accent:'#3b82f6' },
+            { name:'CHKMarket', desc:'Маркетплейс для покупки и продажи', url:'https://t.me/chkmarket', icon:'🏪', accent:'#8b5cf6' },
+            { name:'CHURKS Store', desc:'Канал с новостями', url:'https://t.me/churks_store', icon:'📢', accent:'#10b981' },
+        ];
         return (
             <div className="p-4">
-                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">Маркетплейсы</h1></div>
-                <div className="space-y-4">
-                    {[['CHKPlace','Маркетплейс для покупки и продажи','https://t.me/chkplace'],['CHKMarket','Маркетплейс для покупки и продажи','https://t.me/chkmarket'],['CHURKS Store','Канал с новостями','https://t.me/churks_store']].map(([name,desc,url])=>(
-                        <div key={name} className="marketplace-card p-6">
-                            <h3 className="text-white text-xl font-bold mb-2">{name}</h3>
-                            <p className="text-white text-sm mb-4" style={{opacity:.9}}>{desc}</p>
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="inline-block bg-white text-gray-900 py-3 px-6 rounded-xl font-bold hover:bg-gray-100 transition-colors">Перейти</a>
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text text-xl font-bold">Маркетплейсы</h1></div>
+                <div className="space-y-3">
+                    {items.map(({name,desc,url,icon,accent})=>(
+                        <div key={name} className="marketplace-card p-5">
+                            <div className="flex items-center gap-4">
+                                <div style={{width:48,height:48,borderRadius:'12px',background:accent+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.5rem',flexShrink:0}}>{icon}</div>
+                                <div className="flex-1">
+                                    <h3 className="app-text font-bold mb-0.5">{name}</h3>
+                                    <p className="app-text-secondary text-sm">{desc}</p>
+                                </div>
+                                <a href={url} target="_blank" rel="noopener noreferrer" style={{background:accent,color:'white',padding:'8px 18px',borderRadius:'10px',fontWeight:600,fontSize:'0.9rem',textDecoration:'none',flexShrink:0,display:'flex',alignItems:'center',gap:'4px'}}>Перейти →</a>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -1254,7 +1274,28 @@ onClose();
             {id:8,value:'Скидка 50$',amount:0,special:true,color:'#fbbf24',emoji:'🎁'},
         ];
 
-        useEffect(()=>{ if(chkCoins !== Infinity) localStorage.setItem('chkCoins',chkCoins.toString()) },[chkCoins]);
+        useEffect(()=>{
+            if(chkCoins === Infinity) return;
+            localStorage.setItem('chkCoins',chkCoins.toString());
+            const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            const db = window.__firebaseDb;
+            if (db && tgId) db.collection('users').doc(tgId.toString()).update({ chkCoins }).catch(()=>{});
+        },[chkCoins]);
+
+        // Sync chkCoins from Firebase
+        useEffect(() => {
+            if (isAdminUser) return;
+            const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            if (!tgId) return;
+            const db = window.__firebaseDb;
+            if (!db) return;
+            db.collection('users').doc(tgId.toString()).get().then(doc => {
+                if (doc.exists && doc.data().chkCoins !== undefined) {
+                    setChkCoins(doc.data().chkCoins);
+                    localStorage.setItem('chkCoins', doc.data().chkCoins.toString());
+                }
+            });
+        }, []);
 
        const spinWheel = () => {
             if (isSpinning || !canSpin) return; 
@@ -1293,9 +1334,9 @@ onClose();
         const [bet,setBet]=useState('');
         const createCard=()=>{const suits=['♠','♥','♦','♣'],vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];return{suit:suits[Math.floor(Math.random()*4)],value:vals[Math.floor(Math.random()*13)]};};
         const calcHand=hand=>{let v=0,a=0;hand.forEach(c=>{if(c.value==='A'){a++;v+=11;}else if(['J','Q','K'].includes(c.value))v+=10;else v+=parseInt(c.value);});while(v>21&&a>0){v-=10;a--;}return v;};
-        const startBJ=()=>{const betNum=parseInt(bet)||0;if(betNum<10||betNum>chkCoins)return;setBet(betNum);setChkCoins(p=>p-parseInt(bet));setPlayerHand([createCard(),createCard()]);setDealerHand([createCard(),createCard()]);setGameState('playing');};
+        const startBJ=()=>{const betNum=parseInt(bet)||0;if(betNum<10||betNum>chkCoins)return;setChkCoins(p=>p===Infinity?Infinity:p-betNum);setPlayerHand([createCard(),createCard()]);setDealerHand([createCard(),createCard()]);setGameState('playing');};
         const hit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21)setGameState('lost');};
-        const stand=()=>{let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);const pv=calcHand(playerHand),dv=calcHand(d);if(dv>21||pv>dv){setGameState('won');setChkCoins(p=>p+parseInt(bet)*2);}else if(pv===dv){setGameState('push');setChkCoins(p=>p+parseInt(bet));}else setGameState('lost');};
+        const stand=()=>{let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);const betNum=parseInt(bet)||0;const pv=calcHand(playerHand),dv=calcHand(d);if(dv>21||pv>dv){setGameState('won');setChkCoins(p=>p===Infinity?Infinity:p+betNum*2);}else if(pv===dv){setGameState('push');setChkCoins(p=>p===Infinity?Infinity:p+betNum);}else setGameState('lost');};
         const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);};
 
         const convertToDiscount=()=>{
@@ -1321,14 +1362,17 @@ onClose();
                 {gameState==='idle'&&(<div className="space-y-4">
                     <div>
     <label className="block app-text mb-2">Ставка (от 10 CHK):</label>
-    <input type="number" value={bet} onChange={e=>setBet(e.target.value)} min="10" placeholder="Введите ставку" className="app-card app-text app-border w-full p-3 rounded-xl mb-2" style={{fontSize:'1.2rem'}} />
-    <div className="flex gap-2">
+    <div className="app-card app-border rounded-xl p-3 mb-2 text-center" style={{fontSize:'1.5rem',fontWeight:'bold',minHeight:'52px'}}>
+        <span className="app-text">{bet ? `${bet} CHK` : '—'}</span>
+    </div>
+    <div className="flex gap-2 mb-2">
         {[10,50,100,500,1000].map(v=>(
-            <button key={v} onClick={()=>setBet(v)} className="flex-1 py-2 rounded-xl text-sm app-card app-text app-border hover:bg-blue-600 hover:text-white transition-colors">{v}</button>
+            <button key={v} onClick={()=>setBet(prev => (parseInt(prev)||0) + v)} className="flex-1 py-2 rounded-xl text-sm app-card app-text app-border hover:bg-blue-600 hover:text-white transition-colors">+{v}</button>
         ))}
     </div>
+    <button onClick={()=>setBet('')} className="w-full py-2 rounded-xl text-sm app-card text-red-500 app-border hover:bg-red-50 transition-colors">Сбросить</button>
 </div>
-                    <button onClick={startBJ} disabled={bet<10||bet>10000||bet%10!==0||bet>chkCoins} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Начать игру</button>
+                    <button onClick={startBJ} disabled={!bet||parseInt(bet)<10||parseInt(bet)>chkCoins} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Начать игру</button>
                 </div>)}
                 {gameState!=='idle'&&(<div className="space-y-4">
                     <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Дилер ({gameState==='playing'?'?':calcHand(dealerHand)})</h3><div className="flex gap-2">{dealerHand.map((c,i)=><div key={i} className="bg-white border-2 border-gray-300 rounded-xl p-3 text-center" style={{minWidth:'60px'}}>{gameState==='playing'&&i===1?'?':`${c.value}${c.suit}`}</div>)}</div></div>
@@ -1518,10 +1562,27 @@ useEffect(() => {
             if (data.favorites) setFavorites(data.favorites);
             if (data.cart) setCart(data.cart);
             if (data.orders) setOrders(data.orders);
+            if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
         }
         db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
         setUserDataLoaded(true);
     }).catch(() => setUserDataLoaded(true));
+}, [tgUser?.id]);
+
+// Real-time order status sync
+useEffect(() => {
+    const db = window.__firebaseDb;
+    if (!db || !tgUser?.id) return;
+    const userId = tgUser.id.toString();
+    const unsub = db.collection('orders').where('userId','==',userId).onSnapshot(snap => {
+        snap.docChanges().forEach(change => {
+            if (change.type === 'modified') {
+                const updated = change.doc.data();
+                setOrders(prev => prev.map(o => o.id === updated.id ? {...o, status: updated.status} : o));
+            }
+        });
+    });
+    return () => unsub();
 }, [tgUser?.id]);
 
         useEffect(() => {
@@ -1606,33 +1667,45 @@ const removeFromCart = (id,mp) => {
     saveUserData(favorites, newCart, orders);
 };
 const createOrder = async (items, total, dm, address, comment, finalTotal) => {
-    const newOrder = {id:`ORD-${Date.now()}`,date:new Date().toLocaleDateString('ru-RU'),items:[...items],total,status:'pending',deliveryMethod:dm,address,comment};
+    const orderId = `ORD-${Date.now()}`;
+    const newOrder = {id:orderId, date:new Date().toLocaleDateString('ru-RU'), items:[...items], total, finalTotal: finalTotal||total, status:'pending', deliveryMethod:dm, address, comment};
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
     setCart([]);
     saveUserData(favorites, [], newOrders);
 
-   alert('createOrder called, tgUser: ' + JSON.stringify(tgUser) + ', items: ' + items.length);
-   try {
-    alert('Шаг 1: начало отправки');
-    const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
-    const ADMIN_ID = '7764829776';
-    const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice}${i.condition==='new' ? ` (${i.marketplace})` : ' (Used)'}`).join('\n');
-    const userName = tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Неизвестно';
-    alert('Шаг 2: userName=' + userName + ', items=' + items.length);
-    const msgText = `🛍 Новый заказ!\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal || total}\n🚚 Доставка: ${dm}\n📍 Адрес: ${address || 'не указан'}\n📝 Комментарий: ${comment || 'нет'}\n\n👤 Покупатель: ${userName}\n🆔 ID: ${tgUser?.id || 'неизвестно'}`;
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            chat_id: ADMIN_ID,
-            text: msgText,
-            reply_markup: { inline_keyboard: [[{ text: '💬 Написать покупателю', url: `tg://user?id=${tgUser?.id}` }]] }
-        })
-    });
-    const json = await res.json();
-    alert('Шаг 3: ответ=' + JSON.stringify(json));
-} catch(e) { alert('ОШИБКА: ' + e.message); }
+    // Save order to Firebase for status sync
+    const db = window.__firebaseDb;
+    if (db && tgUser?.id) {
+        db.collection('orders').doc(orderId).set({
+            ...newOrder,
+            userId: tgUser.id.toString(),
+            userName: tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно',
+            username: tgUser?.username || '',
+            status: 'pending'
+        });
+    }
+
+    try {
+        const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
+        const ADMIN_ID = '7764829776';
+        const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice}${i.condition==='new' ? ` (${i.marketplace})` : ' (Used)'}`).join('\n');
+        const userName = tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно';
+        const msgText = `🛍 Новый заказ! #${orderId}\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal||total}\n🚚 Доставка: ${dm}\n📋 Детали: ${address||'не указан'}\n📝 Комментарий: ${comment||'нет'}\n\n👤 Покупатель: ${userName}${tgUser?.username?' (@'+tgUser.username+')':''}\n🆔 ID: ${tgUser?.id||'неизвестно'}`;
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: ADMIN_ID,
+                text: msgText,
+                reply_markup: { inline_keyboard: [
+                    [{ text: '✅ Подтверждено', callback_data: `status_confirmed_${orderId}` }, { text: '❌ Отмена', callback_data: `status_cancelled_${orderId}` }],
+                    [{ text: '🚚 В дороге', callback_data: `status_shipped_${orderId}` }, { text: '📦 Принято', callback_data: `status_delivered_${orderId}` }],
+                    [{ text: '💬 Написать покупателю', url: `tg://user?id=${tgUser?.id}` }]
+                ]}
+            })
+        });
+    } catch(e) { console.error('Ошибка отправки:', e); }
 };
 
         return (
