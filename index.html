@@ -1090,9 +1090,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [selected, setSelected] = useState(null);
         const [lightboxImgs, setLightboxImgs] = useState(null);
         const [lightboxIdx, setLightboxIdx] = useState(0);
+        const safeOrders = (orders||[]).filter(o => o && o.id);
         const getStatus = s=>({pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},cancelled:{label:'Отменено',style:{background:'rgba(239,68,68,0.15)',color:'#ef4444'}},shipped:{label:'В дороге',style:{background:'rgba(139,92,246,0.15)',color:'#8b5cf6'}},delivered:{label:'Принято',style:{background:'rgba(22,163,74,0.15)',color:'#16a34a'}}}[s]||{label:s||'В обработке',style:{background:'rgba(107,114,128,0.15)',color:'#6b7280'}});
-        const getImg = (item) => { const full = products?.find(p=>p.id===item.id); return full?.imageUrl || item.imageUrl || ''; };
-        const getImgs = (item) => { const full = products?.find(p=>p.id===item.id); return full?.images?.length ? full.images : (full?.imageUrl ? [full.imageUrl] : (item.imageUrl ? [item.imageUrl] : [])); };
+        const getImg = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.imageUrl || item.imageUrl || ''; } catch(e){return '';} };
+        const getImgs = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.images?.length ? full.images : (full?.imageUrl ? [full.imageUrl] : (item.imageUrl ? [item.imageUrl] : [])); } catch(e){return [];} };
 
         if (lightboxImgs) return (
             <div onClick={()=>setLightboxImgs(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
@@ -1108,11 +1109,11 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 <div className="mb-6"><h1 className="app-text mb-2">{selected.displayId || selected.id}</h1><p className="app-text-secondary">{selected.date}</p></div>
                 <div className="app-card rounded-xl p-4 mb-4">
                     <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Статус:</span><span className="px-3 py-1 rounded-full text-sm font-medium" style={getStatus(selected.status).style}>{getStatus(selected.status).label}</span></div>
-                    <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Доставка:</span><span className="app-text">{selected.deliveryMethod}</span></div>
+                    <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Доставка:</span><span className="app-text">{selected.deliveryMethod||'—'}</span></div>
                     <div className="flex items-center justify-between"><span className="app-text-secondary">Итого:</span><span className="price-display" style={{fontSize:'1.25rem'}}>${selected.finalTotal||selected.total}</span></div>
                 </div>
                 <div className="mb-4"><h2 className="app-text mb-3">Товары</h2>
-                    <div className="space-y-3">{selected.items.map((p,i)=>{
+                    <div className="space-y-3">{(selected.items||[]).map((p,i)=>{
                         const imgs = getImgs(p);
                         return (
                         <div key={i} className="app-card rounded-xl overflow-hidden shadow-sm flex">
@@ -1130,14 +1131,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="p-4">
                 <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Мои заказы</h1></div>
-                {orders.length===0 ? (
+                {safeOrders.length===0 ? (
                    <div className="flex flex-col items-center justify-center py-20"><div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><PackageIcon /></div><p className="app-text-secondary">Нет заказов</p></div>
                 ) : (
-                    <div className="space-y-3">{orders.map(order=>(
+                    <div className="space-y-3">{safeOrders.map(order=>(
                         <button key={order.id} onClick={()=>setSelected(order)} className="w-full app-card rounded-xl p-4 hover:shadow-md transition-all text-left">
                             <div className="flex items-center justify-between mb-2"><span className="app-text font-medium">{order.displayId || order.id}</span><ChevronRightIcon /></div>
                             <div className="flex items-center justify-between mb-2"><span className="app-text-secondary text-sm">{order.date}</span><span className="px-2 py-1 rounded-full text-xs font-medium" style={getStatus(order.status).style}>{getStatus(order.status).label}</span></div>
-                            <div className="flex items-center justify-between"><span className="app-text-secondary text-sm">{order.items.length} товар(ов)</span><span className="price-display">${order.finalTotal||order.total}</span></div>
+                            <div className="flex items-center justify-between"><span className="app-text-secondary text-sm">{(order.items||[]).length} товар(ов)</span><span className="price-display">${order.finalTotal||order.total}</span></div>
                         </button>
                     ))}</div>
                 )}
