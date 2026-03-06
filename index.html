@@ -301,6 +301,9 @@
         const [notification, setNotification] = useState(null);
         const [transferUsername, setTransferUsername] = useState('');
         const [transferAmount, setTransferAmount] = useState('');
+        const [broadcastText, setBroadcastText] = useState('');
+        const [broadcastSending, setBroadcastSending] = useState(false);
+        const [broadcastResult, setBroadcastResult] = useState(null);
 
         const handleTransfer = async () => {
             if (!transferUsername.trim()) { setNotification('Введите юзернейм'); return; }
@@ -403,6 +406,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <h3 className="app-text mb-1">💰 Перевод CHK</h3>
                             <p className="app-text-secondary text-sm">Отправить CHKCoins пользователю по юзернейму</p>
                         </button>
+                        <button onClick={()=>setActiveTab('broadcast')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">📢 Рассылка</h3>
+                            <p className="app-text-secondary text-sm">Отправить сообщение всем пользователям бота</p>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -420,6 +427,63 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         <div><label className="block app-text mb-2">Юзернейм получателя</label><input value={transferUsername} onChange={e=>setTransferUsername(e.target.value)} className="app-card app-text app-border" placeholder="@username" /></div>
                         <div><label className="block app-text mb-2">Количество CHK</label><input type="number" value={transferAmount} onChange={e=>setTransferAmount(e.target.value)} className="app-card app-text app-border" placeholder="1000" /></div>
                         <button onClick={handleTransfer} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Отправить</button>
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
+        if (activeTab === 'broadcast') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Рассылка</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {broadcastResult ? (
+                            <div className="text-center py-6">
+                                <div style={{fontSize:'2.5rem'}} className="mb-3">📢</div>
+                                <p className="app-text font-bold mb-1">Рассылка завершена!</p>
+                                <p className="app-text-secondary text-sm">{broadcastResult}</p>
+                                <button onClick={()=>{setBroadcastResult(null);setBroadcastText('');}} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">Новая рассылка</button>
+                            </div>
+                        ) : (<>
+                            <div>
+                                <label className="block app-text mb-2">Текст сообщения</label>
+                                <textarea value={broadcastText} onChange={e=>setBroadcastText(e.target.value)} className="app-card app-text app-border w-full" rows="5" placeholder="Привет! У нас новые поступления..." style={{resize:'none'}} />
+                            </div>
+                            <div className="app-card border app-border rounded-xl p-3">
+                                <p className="app-text-secondary text-sm">💡 Будет отправлено всем пользователям, которые писали боту. Поддерживается HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;</p>
+                            </div>
+                            <button onClick={async()=>{
+                                if (!broadcastText.trim()) { setNotification('Введите текст'); return; }
+                                setBroadcastSending(true);
+                                const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
+                                const db = window.__firebaseDb;
+                                let sent = 0, failed = 0;
+                                try {
+                                    const snap = await db.collection('users').get();
+                                    const userIds = snap.docs.map(d => d.id).filter(id => id && /^\d+$/.test(id));
+                                    for (const uid of userIds) {
+                                        try {
+                                            const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                                                method:'POST', headers:{'Content-Type':'application/json'},
+                                                body: JSON.stringify({ chat_id: uid, text: broadcastText, parse_mode: 'HTML' })
+                                            });
+                                            const data = await r.json();
+                                            if (data.ok) sent++; else failed++;
+                                        } catch { failed++; }
+                                        await new Promise(r=>setTimeout(r,50));
+                                    }
+                                    setBroadcastResult(`Отправлено: ${sent}, ошибок: ${failed}`);
+                                } catch(e) { setNotification('Ошибка: ' + e.message); }
+                                setBroadcastSending(false);
+                            }} disabled={broadcastSending||!broadcastText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                                {broadcastSending ? '⏳ Отправляем...' : '📢 Отправить всем'}
+                            </button>
+                        </>)}
                     </div>
                 </div>
                 {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
@@ -1090,10 +1154,70 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [selected, setSelected] = useState(null);
         const [lightboxImgs, setLightboxImgs] = useState(null);
         const [lightboxIdx, setLightboxIdx] = useState(0);
+        const [reviewOrder, setReviewOrder] = useState(null);
+        const [reviewText, setReviewText] = useState('');
+        const [reviewRating, setReviewRating] = useState(5);
+        const [reviewSent, setReviewSent] = useState(false);
         const safeOrders = (orders||[]).filter(o => o && o.id);
-        const getStatus = s=>({pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},cancelled:{label:'Отменено',style:{background:'rgba(239,68,68,0.15)',color:'#ef4444'}},shipped:{label:'В дороге',style:{background:'rgba(139,92,246,0.15)',color:'#8b5cf6'}},delivered:{label:'Принято',style:{background:'rgba(22,163,74,0.15)',color:'#16a34a'}}}[s]||{label:s||'В обработке',style:{background:'rgba(107,114,128,0.15)',color:'#6b7280'}});
+        const getStatus = s=>({
+            pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},
+            confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},
+            cancelled:{label:'Отменено',style:{background:'rgba(239,68,68,0.15)',color:'#ef4444'}},
+            shipped:{label:'В дороге',style:{background:'rgba(139,92,246,0.15)',color:'#8b5cf6'}},
+            delivered:{label:'Доставлено',style:{background:'rgba(16,185,129,0.15)',color:'#10b981'}},
+            received:{label:'Получено ✓',style:{background:'rgba(22,163,74,0.15)',color:'#16a34a'}}
+        }[s]||{label:s||'В обработке',style:{background:'rgba(107,114,128,0.15)',color:'#6b7280'}});
         const getImg = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.imageUrl || item.imageUrl || ''; } catch(e){return '';} };
         const getImgs = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.images?.length ? full.images : (full?.imageUrl ? [full.imageUrl] : (item.imageUrl ? [item.imageUrl] : [])); } catch(e){return [];} };
+
+        const sendReview = async () => {
+            if (!reviewText.trim()) return;
+            const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
+            const ADMIN_ID = '7764829776';
+            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            const stars = '⭐'.repeat(reviewRating);
+            const msg = `💬 Новый отзыв!\n\n${stars} (${reviewRating}/5)\n📦 Заказ: ${reviewOrder?.displayId||reviewOrder?.id}\n👤 От: ${tgUser?.first_name||''}${tgUser?.username?' (@'+tgUser.username+')':''}\n\n"${reviewText}"`;
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ chat_id: ADMIN_ID, text: msg })
+                });
+                const db = window.__firebaseDb;
+                if (db) db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: tgUser?.first_name, date: new Date().toLocaleDateString('ru-RU') });
+            } catch(e) { console.error(e); }
+            setReviewSent(true);
+        };
+
+        if (reviewOrder) return (
+            <div className="p-4">
+                <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setReviewText('');setReviewRating(5);}} className="mb-6 app-text hover:text-blue-600">← Назад</button>
+                <div className="mb-6"><h1 className="app-text">Оставить отзыв</h1><p className="app-text-secondary text-sm mt-1">{reviewOrder.displayId||reviewOrder.id}</p></div>
+                {reviewSent ? (
+                    <div className="text-center py-10">
+                        <div style={{fontSize:'3rem'}} className="mb-4">🙏</div>
+                        <h2 className="app-text mb-2">Спасибо за отзыв!</h2>
+                        <p className="app-text-secondary">Ваше мнение очень важно для нас.</p>
+                        <button onClick={()=>{setReviewOrder(null);setReviewSent(false);}} className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-xl">Готово</button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="app-card rounded-xl p-4">
+                            <p className="app-text mb-3">Оценка:</p>
+                            <div className="flex gap-2 justify-center">
+                                {[1,2,3,4,5].map(s=>(
+                                    <button key={s} onClick={()=>setReviewRating(s)} style={{fontSize:'2rem',opacity:s<=reviewRating?1:0.3,transition:'opacity 0.2s',background:'none',border:'none',cursor:'pointer',padding:'4px'}}>⭐</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="app-card rounded-xl p-4">
+                            <p className="app-text mb-2">Комментарий:</p>
+                            <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} className="app-card app-text app-border w-full" rows="4" placeholder="Расскажите о вашем опыте..." style={{resize:'none'}} />
+                        </div>
+                        <button onClick={sendReview} disabled={!reviewText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50">Отправить отзыв</button>
+                    </div>
+                )}
+            </div>
+        );
 
         if (lightboxImgs) return (
             <div onClick={()=>setLightboxImgs(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
@@ -1112,6 +1236,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Доставка:</span><span className="app-text">{selected.deliveryMethod||'—'}</span></div>
                     <div className="flex items-center justify-between"><span className="app-text-secondary">Итого:</span><span className="price-display" style={{fontSize:'1.25rem'}}>${selected.finalTotal||selected.total}</span></div>
                 </div>
+                {selected.status==='received' && !selected.reviewLeft && (
+                    <button onClick={()=>setReviewOrder(selected)} className="w-full mb-4 text-gray-900 py-3 rounded-xl font-bold transition-colors" style={{background:'#facc15'}}>⭐ Оставить отзыв о заказе</button>
+                )}
                 <div className="mb-4"><h2 className="app-text mb-3">Товары</h2>
                     <div className="space-y-3">{(selected.items||[]).map((p,i)=>{
                         const imgs = getImgs(p);
@@ -1593,6 +1720,7 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         });
         const [referralStats] = useState({ referralsCount:0, cashback:0 });
         const tg = window.Telegram?.WebApp;
+        if (tg) { tg.expand(); tg.requestFullscreen?.(); }
 const tgUser = tg?.initDataUnsafe?.user;
 const startParam = tg?.initDataUnsafe?.start_param;
 useEffect(() => {
@@ -1791,7 +1919,8 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
                 text: msgText,
                 reply_markup: { inline_keyboard: [
                     [{ text: '✅ Подтверждено', callback_data: `status_confirmed_${orderId}` }, { text: '❌ Отмена', callback_data: `status_cancelled_${orderId}` }],
-                    [{ text: '🚚 В дороге', callback_data: `status_shipped_${orderId}` }, { text: '📦 Принято', callback_data: `status_delivered_${orderId}` }],
+                    [{ text: '🚚 В дороге', callback_data: `status_shipped_${orderId}` }, { text: '🏠 Доставлено', callback_data: `status_delivered_${orderId}` }],
+                    [{ text: '✔️ Получено покупателем', callback_data: `status_received_${orderId}` }],
                     [{ text: '💬 Написать покупателю', url: `tg://user?id=${tgUser?.id}` }]
                 ]}
             })
@@ -1818,4 +1947,3 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
 </script>
 </body>
 </html>
-
