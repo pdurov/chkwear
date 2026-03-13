@@ -1048,7 +1048,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{background:'rgba(22,163,74,0.15)'}}><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
                                 <h2 className="app-text" style={{fontSize:'1.5rem'}}>Заказ оформлен!</h2>
                                 <p className="app-text-secondary">Мы свяжемся с вами для подтверждения.</p>
-                                <div className="bg-blue-50 rounded-xl p-4"><p className="app-text-secondary text-sm">По вопросам: <a href="https://t.me/kanefix" className="text-blue-600" style={{textDecoration:'underline'}}>@kanefix</a></p></div>
+                                <div className="bg-blue-50 rounded-xl p-4"><p className="app-text-secondary text-sm">По вопросам: <button onClick={()=>{const tg=window.Telegram?.WebApp;const url='https://t.me/kanefix';try{if(tg?.openTelegramLink){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} style={{color:'#3b82f6',textDecoration:'underline',background:'none',border:'none',cursor:'pointer',font:'inherit',padding:0}}>@kanefix</button></p></div>
                                 <button onClick={handleFinalClose} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700">Закрыть</button>
                             </div>
                         )}
@@ -1286,8 +1286,11 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const getImg = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.imageUrl || item.imageUrl || ''; } catch(e){return '';} };
         const getImgs = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.images?.length ? full.images : (full?.imageUrl ? [full.imageUrl] : (item.imageUrl ? [item.imageUrl] : [])); } catch(e){return [];} };
 
+        const [reviewSending, setReviewSending] = useState(false);
+
         const sendReview = async () => {
-            if (!reviewText.trim()) return;
+            if (!reviewText.trim() || reviewSending) return;
+            setReviewSending(true);
             const WORKER_URL = 'https://royal-disk-c66a.external-all666.workers.dev';
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
             const stars = '⭐'.repeat(reviewRating);
@@ -1300,8 +1303,11 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     await db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: reviewAnon ? null : tgUser?.first_name, username: reviewAnon ? null : tgUser?.username, anonymous: reviewAnon, date: new Date().toLocaleDateString('ru-RU') });
                     await db.collection('orders').doc(reviewOrder?.id).set({ reviewLeft: true }, { merge: true });
                 }
-            } catch(e) { console.error(e); }
-            setReviewSent(true);
+                setReviewSent(true);
+            } catch(e) {
+                console.error(e);
+                setReviewSending(false);
+            }
         };
 
         if (reviewOrder) return (
@@ -1341,7 +1347,15 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 <div style={{position:'absolute',top:'3px',left:reviewAnon?'3px':'23px',width:'18px',height:'18px',borderRadius:'50%',background:'white',transition:'left 0.2s'}}/>
                             </div>
                         </button>
-                        <button onClick={sendReview} disabled={!reviewText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50">Отправить отзыв</button>
+                        {!reviewAnon && (
+                            <div style={{background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.2)',borderRadius:'.75rem',padding:'.65rem 1rem',display:'flex',alignItems:'flex-start',gap:'.5rem'}}>
+                                <span style={{fontSize:'0.9rem',flexShrink:0,marginTop:'1px'}}>ℹ️</span>
+                                <p className="app-text-secondary" style={{fontSize:'0.78rem',lineHeight:'1.4'}}>Ваш @username в Telegram будет виден всем покупателям в разделе отзывов. Если не хотите — выберите анонимный отзыв.</p>
+                            </div>
+                        )}
+                        <button onClick={sendReview} disabled={!reviewText.trim() || reviewSending} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50" style={{cursor: reviewSending ? 'not-allowed' : 'pointer'}}>
+                            {reviewSending ? '⏳ Отправляем...' : 'Отправить отзыв'}
+                        </button>
                     </div>
                 )}
             </div>
@@ -1431,7 +1445,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><MessageCircleIcon /></div>
                     <h2 className="app-text mb-2">Нужна помощь?</h2>
                     <p className="app-text-secondary mb-6">Свяжитесь с нами в Telegram</p>
-                    <button onClick={()=>window.open('https://t.me/kanefix','_blank')} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"><SendIcon /><span>Написать @kanefix</span></button>
+                    <button onClick={()=>{const tg=window.Telegram?.WebApp;const url='https://t.me/kanefix';try{if(tg?.openTelegramLink){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"><SendIcon /><span>Написать @kanefix</span></button>
                 </div>
                 <div className="app-card rounded-xl p-4">
                     <h3 className="app-text mb-3">FAQ</h3>
@@ -1516,7 +1530,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                     <h3 className="app-text font-bold mb-0.5">{name}</h3>
                                     <p className="app-text-secondary text-sm">{desc}</p>
                                 </div>
-                                <a href={url} target="_blank" rel="noopener noreferrer" style={{background:accent,color:'white',padding:'8px 18px',borderRadius:'10px',fontWeight:600,fontSize:'0.9rem',textDecoration:'none',flexShrink:0,display:'flex',alignItems:'center',gap:'4px'}}>Перейти →</a>
+                                <button onClick={()=>{const tg=window.Telegram?.WebApp;try{if(tg?.openTelegramLink&&url.includes('t.me')){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} style={{background:accent,color:'white',padding:'8px 18px',borderRadius:'10px',fontWeight:600,fontSize:'0.9rem',border:'none',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:'4px'}}>Перейти →</button>
                             </div>
                         </div>
                     ))}
@@ -1552,9 +1566,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // REVIEWS
+    // REVIEWS
     function ReviewsScreen({ onBack }) {
         const [reviews, setReviews] = useState([]);
         const [loading, setLoading] = useState(true);
+        const [filterRating, setFilterRating] = useState(0); // 0 = все
+
         useEffect(() => {
             const db = window.__firebaseDb;
             if (!db) { setLoading(false); return; }
@@ -1562,46 +1579,116 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 .then(snap => { setReviews(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); })
                 .catch(() => setLoading(false));
         }, []);
-        const avgRating = reviews.length ? (reviews.reduce((s,r)=>s+(r.rating||5),0)/reviews.length).toFixed(1) : null;
+
+        const avgRating = reviews.length ? (reviews.reduce((s,r)=>s+(r.rating||5),0)/reviews.length) : 0;
+        const displayed = filterRating ? reviews.filter(r=>(r.rating||5)===filterRating) : reviews;
+
+        // Fix 6: открываем Telegram ссылки без закрытия приложения
+        const openTgProfile = (username) => {
+            const tg = window.Telegram?.WebApp;
+            const url = `https://t.me/${username}`;
+            try {
+                if (tg?.openTelegramLink) { tg.openTelegramLink(url); return; }
+                if (tg?.openLink) { tg.openLink(url); return; }
+            } catch(e) {}
+            window.open(url, '_blank');
+        };
+
+        const ratingBar = (n) => {
+            const count = reviews.filter(r=>(r.rating||5)===n).length;
+            const pct = reviews.length ? (count/reviews.length)*100 : 0;
+            return { count, pct };
+        };
+
         return (
             <div className="p-4">
-                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
-                <div className="mb-6">
-                    <h1 className="app-text mb-1">Отзывы покупателей</h1>
-                    {avgRating && <div className="flex items-center gap-2 mt-2">
-                        <span style={{fontSize:'1.5rem',fontWeight:700}} className="app-text">{avgRating}</span>
-                        <span style={{fontSize:'1.2rem'}}>{'⭐'.repeat(Math.round(avgRating))}</span>
-                        <span className="app-text-secondary text-sm">({reviews.length} отзыв{reviews.length===1?'':reviews.length<5?'а':'ов'})</span>
-                    </div>}
+                <button onClick={onBack} className="mb-4 app-text hover:text-blue-600 transition-colors">← Назад</button>
+
+                {/* Hero-блок с рейтингом */}
+                <div className="app-card rounded-2xl border app-border mb-4 overflow-hidden">
+                    <div style={{background:'linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%)',padding:'20px 20px 16px'}}>
+                        <p style={{color:'rgba(255,255,255,0.7)',fontSize:'0.8rem',marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Средняя оценка</p>
+                        <div className="flex items-end gap-3">
+                            <span style={{fontSize:'3.5rem',fontWeight:800,color:'white',lineHeight:1}}>{reviews.length ? avgRating.toFixed(1) : '—'}</span>
+                            <div style={{paddingBottom:'6px'}}>
+                                <div style={{fontSize:'1.2rem',marginBottom:'2px'}}>
+                                    {[1,2,3,4,5].map(s=>(
+                                        <span key={s} style={{opacity:s<=Math.round(avgRating)?1:0.3}}>⭐</span>
+                                    ))}
+                                </div>
+                                <p style={{color:'rgba(255,255,255,0.6)',fontSize:'0.8rem'}}>{reviews.length} отзыв{reviews.length===1?'':reviews.length<5?'а':'ов'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Шкала по звёздам */}
+                    <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:'6px'}}>
+                        {[5,4,3,2,1].map(n=>{
+                            const {count,pct}=ratingBar(n);
+                            return (
+                                <button key={n} onClick={()=>setFilterRating(filterRating===n?0:n)} style={{display:'flex',alignItems:'center',gap:'8px',background:'none',border:'none',cursor:'pointer',padding:'2px 0',borderRadius:'6px',transition:'opacity 0.15s',opacity:filterRating&&filterRating!==n?0.45:1}}>
+                                    <span className="app-text-secondary" style={{fontSize:'0.75rem',width:'10px',textAlign:'right',flexShrink:0}}>{n}</span>
+                                    <span style={{fontSize:'0.7rem'}}>⭐</span>
+                                    <div style={{flex:1,height:'6px',background:'rgba(107,114,128,0.15)',borderRadius:'3px',overflow:'hidden'}}>
+                                        <div style={{height:'100%',background:n>=4?'#3b82f6':n===3?'#f59e0b':'#ef4444',borderRadius:'3px',width:`${pct}%`,transition:'width 0.5s ease'}}/>
+                                    </div>
+                                    <span className="app-text-secondary" style={{fontSize:'0.75rem',width:'16px',flexShrink:0}}>{count}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {filterRating > 0 && (
+                        <div style={{padding:'0 16px 12px'}}>
+                            <button onClick={()=>setFilterRating(0)} style={{fontSize:'0.78rem',color:'#3b82f6',background:'rgba(59,130,246,0.1)',border:'none',borderRadius:'20px',padding:'4px 12px',cursor:'pointer'}}>
+                                ✕ Убрать фильтр {filterRating}⭐
+                            </button>
+                        </div>
+                    )}
                 </div>
+
                 {loading ? (
-                    <div className="flex justify-center py-10"><div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}} /></div>
-                ) : reviews.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <div style={{fontSize:'3rem'}} className="mb-4">💬</div>
-                        <p className="app-text-secondary">Пока нет отзывов</p>
-                        <p className="app-text-secondary text-sm mt-1">Будь первым!</p>
+                    <div className="flex justify-center py-10">
+                        <div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+                    </div>
+                ) : displayed.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div style={{fontSize:'3rem',marginBottom:'12px'}}>{reviews.length===0?'✍️':'🔍'}</div>
+                        <p className="app-text" style={{fontWeight:600}}>{reviews.length===0?'Пока нет отзывов':'Нет отзывов с такой оценкой'}</p>
+                        <p className="app-text-secondary text-sm mt-1">{reviews.length===0?'Будьте первым!':'Попробуйте другой фильтр'}</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {reviews.map(r => (
-                            <div key={r.id} className="app-card rounded-xl p-4 border app-border">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{background: r.anonymous ? 'rgba(107,114,128,0.15)' : 'rgba(59,130,246,0.15)',fontSize:'0.9rem',fontWeight:700,color: r.anonymous ? '#6b7280' : '#3b82f6'}}>
-                                            {r.anonymous ? '?' : (r.userName||'?')[0].toUpperCase()}
+                        {displayed.map(r => (
+                            <div key={r.id} className="app-card rounded-xl border app-border">
+                                <div style={{padding:'14px 16px'}}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            {/* Аватар */}
+                                            <div style={{width:'34px',height:'34px',borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.95rem',background:r.anonymous?'rgba(107,114,128,0.12)':'rgba(59,130,246,0.12)',color:r.anonymous?'#6b7280':'#3b82f6'}}>
+                                                {r.anonymous ? '?' : (r.userName||'?')[0].toUpperCase()}
+                                            </div>
+                                            {/* Имя / username */}
+                                            {r.anonymous ? (
+                                                <span className="app-text-secondary" style={{fontSize:'0.85rem',fontStyle:'italic'}}>Анонимно</span>
+                                            ) : r.username ? (
+                                                /* Fix 1: кликабельный, открывает Telegram без закрытия приложения */
+                                                <button onClick={()=>openTgProfile(r.username)} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',color:'#3b82f6',fontWeight:600,fontSize:'0.85rem'}}>
+                                                    @{r.username}
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                                </button>
+                                            ) : (
+                                                <span className="app-text" style={{fontSize:'0.85rem',fontWeight:500}}>{r.userName||'Покупатель'}</span>
+                                            )}
                                         </div>
-                                        {r.anonymous
-                                            ? <span className="app-text-secondary text-sm italic">Анонимно</span>
-                                            : r.username
-                                                ? <a href={`https://t.me/${r.username}`} target="_blank" rel="noopener noreferrer" style={{color:'#3b82f6',fontWeight:500,fontSize:'0.875rem'}}>@{r.username}</a>
-                                                : <span className="app-text text-sm font-medium">{r.userName||'Покупатель'}</span>
-                                        }
+                                        <span className="app-text-secondary" style={{fontSize:'0.72rem'}}>{r.date}</span>
                                     </div>
-                                    <span className="app-text-secondary text-xs">{r.date}</span>
+                                    {/* Звёзды */}
+                                    <div style={{marginBottom:'8px',fontSize:'0.85rem',letterSpacing:'1px'}}>
+                                        {[1,2,3,4,5].map(s=>(
+                                            <span key={s} style={{opacity:s<=(r.rating||5)?1:0.18}}>⭐</span>
+                                        ))}
+                                    </div>
+                                    <p className="app-text" style={{fontSize:'0.875rem',lineHeight:'1.55'}}>{r.text}</p>
                                 </div>
-                                <div className="mb-2" style={{fontSize:'1rem'}}>{'⭐'.repeat(r.rating||5)}</div>
-                                <p className="app-text text-sm" style={{lineHeight:'1.6'}}>{r.text}</p>
                             </div>
                         ))}
                     </div>
@@ -1943,7 +2030,15 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [activeScreen, setActiveScreen] = useState('home');
         const [favorites, setFavorites] = useState([]);
 const [cart, setCart] = useState([]);
-const [orders, setOrders] = useState([]);
+// Fix 5: сразу грузим заказы из localStorage — не ждём Firebase
+const [orders, setOrders] = useState(() => {
+    try {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        const raw = localStorage.getItem('chkOrders_' + (tgId || 'guest'));
+        if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    return [];
+});
 const [userDataLoaded, setUserDataLoaded] = useState(false);
         const [theme, setTheme] = useState('light');
         const [isAdmin, setIsAdmin] = useState(false);
@@ -2020,8 +2115,13 @@ useEffect(() => {
                     const orderSnap = await db.collection('orders').where('userId','==',userId).get();
                     const statusMap = {};
                     orderSnap.forEach(d => { statusMap[d.data().id] = { status: d.data().status, reviewLeft: d.data().reviewLeft }; });
-                    setOrders(data.orders.map(o => statusMap[o.id] ? {...o, ...statusMap[o.id]} : o));
-                } catch(e) { setOrders(data.orders); }
+                    const merged = data.orders.map(o => statusMap[o.id] ? {...o, ...statusMap[o.id]} : o);
+                    setOrders(merged);
+                    try { localStorage.setItem('chkOrders_' + userId, JSON.stringify(merged)); } catch(e) {}
+                } catch(e) {
+                    setOrders(data.orders);
+                    try { localStorage.setItem('chkOrders_' + userId, JSON.stringify(data.orders)); } catch(e2) {}
+                }
             }
         }
         db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
@@ -2038,7 +2138,11 @@ useEffect(() => {
         snap.docChanges().forEach(change => {
             if (change.type === 'modified') {
                 const updated = change.doc.data();
-                setOrders(prev => prev.map(o => o.id === updated.id ? {...o, status: updated.status, reviewLeft: updated.reviewLeft} : o));
+                setOrders(prev => {
+                    const next = prev.map(o => o.id === updated.id ? {...o, status: updated.status, reviewLeft: updated.reviewLeft} : o);
+                    try { localStorage.setItem('chkOrders_' + userId, JSON.stringify(next)); } catch(e) {}
+                    return next;
+                });
             }
         });
     });
@@ -2130,15 +2234,37 @@ const removeFromCart = (id,mp) => {
 };
 const createOrder = async (items, total, dm, address, comment, finalTotal, discountInfo) => {
     const orderId = `ORD-${Date.now()}`;
-    const orderNumber = orders.length + 1;
+    const db = window.__firebaseDb;
+
+    // Fix 4: глобальный атомарный счётчик заказов — один на всех юзеров
+    let orderNumber = Date.now(); // fallback
+    if (db) {
+        try {
+            const counterRef = db.collection('meta').doc('orderCounter');
+            await db.runTransaction(async tx => {
+                const doc = await tx.get(counterRef);
+                orderNumber = (doc.exists ? (doc.data().count || 0) : 0) + 1;
+                tx.set(counterRef, { count: orderNumber });
+            });
+        } catch(e) {
+            // Если транзакция упала — берём количество всех заказов + 1
+            try {
+                const snap = await db.collection('orders').get();
+                orderNumber = snap.size + 1;
+            } catch(e2) { console.error(e2); }
+        }
+    }
+
     const displayId = `Заказ #${orderNumber}`;
-    const newOrder = {id:orderId, displayId, date:new Date().toLocaleDateString('ru-RU'), items:[...items], total, finalTotal: finalTotal||total, status:'pending', deliveryMethod:dm, address, comment};
+    const newOrder = {id:orderId, displayId, orderNumber, date:new Date().toLocaleDateString('ru-RU'), items:[...items], total, finalTotal: finalTotal||total, status:'pending', deliveryMethod:dm, address, comment};
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
     setCart([]);
+    // Fix 5: сохраняем в localStorage сразу, не дожидаясь Firebase
+    const uid = tgUser?.id?.toString();
+    try { if (uid) localStorage.setItem('chkOrders_' + uid, JSON.stringify(newOrders)); } catch(e) {}
     saveUserData(favorites, [], newOrders);
 
-    const db = window.__firebaseDb;
     if (db && tgUser?.id) {
         db.collection('orders').doc(orderId).set({
             ...newOrder,
