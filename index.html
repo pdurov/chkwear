@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>chkweardeals</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -155,9 +155,6 @@
         .filter-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:55;opacity:0;transition:opacity .3s ease-out;pointer-events:none}
         .filter-overlay.open{opacity:1;pointer-events:all}
         .roulette-container{position:relative;height:160px;overflow:hidden;background:linear-gradient(90deg,rgba(0,0,0,.1) 0%,transparent 20px,transparent calc(100% - 20px),rgba(0,0,0,.1) 100%);border-radius:12px;margin-bottom:16px}
-        @keyframes slotSpin { 0%{transform:translateY(0)} 100%{transform:translateY(-68px)} }
-        @keyframes winPulse { 0%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.03)} 100%{opacity:1;transform:scale(1)} }
-        @keyframes pulse { 0%{opacity:0.5;box-shadow:0 0 4px currentColor} 100%{opacity:1;box-shadow:0 0 12px currentColor} }
         .roulette-pointer{position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;z-index:20;pointer-events:none}
         .pointer-arrow{position:absolute;top:0;left:50%;transform:translateX(-50%) translateY(-1px);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:12px solid #3b82f6}
         .pointer-line{position:absolute;top:8px;left:50%;transform:translateX(-50%);height:calc(100% - 8px);width:2px;background:#3b82f6;box-shadow:0 0 10px rgba(59,130,246,.8)}
@@ -232,7 +229,6 @@
     const FilterAltIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
     const GiftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect width="20" height="5" x="2" y="7"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>;
     const MarketplaceNavIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
-    const ReviewStarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
 // TOAST
     function Toast({ message, onClose }) {
         useEffect(() => {
@@ -1701,218 +1697,655 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 
-    // CASINO SLOTS
-    function CasinoSlots({ chkCoins, setChkCoins, onBack, SYMBOLS, REEL_POOL }) {
-        const [reels, setReels] = useState([['seven','bar','bell'],['star','horse','crown'],['diamond','seven','bar']]);
-        const [spinning, setSpinning] = useState(false);
-        const [spinningReels, setSpinningReels] = useState([false,false,false]);
-        const [bet, setBet] = useState(50);
-        const [lastWin, setLastWin] = useState(null);
-        const [totalWon, setTotalWon] = useState(0);
-        const [totalLost, setTotalLost] = useState(0);
-        const [spinCount, setSpinCount] = useState(0);
-        const [winFlash, setWinFlash] = useState(false);
+    // ═══════════════════════════════════════════════════
+    // VOID CRYSTALS CASINO — Кристаллы Войда: Хроники Бездны
+    // ═══════════════════════════════════════════════════
+    function VoidCrystalsCasino({ chkCoins, setChkCoins, onBack, isInfinite }) {
 
-        const getSym = id => SYMBOLS.find(s=>s.id===id) || SYMBOLS[0];
-        const randSym = () => REEL_POOL[Math.floor(Math.random()*REEL_POOL.length)];
-
-        const BET_OPTIONS = [10,50,100,500,1000];
-
-        const spin = () => {
-            if (spinning || chkCoins < bet) return;
-            setChkCoins(p => p - bet);
-            setTotalLost(p => p + bet);
-            setSpinning(true);
-            setLastWin(null);
-            setSpinCount(p => p+1);
-            setSpinningReels([true,true,true]);
-
-            // Генерируем финальный результат
-            const result = [
-                [randSym(), randSym(), randSym()],
-                [randSym(), randSym(), randSym()],
-                [randSym(), randSym(), randSym()],
-            ];
-
-            // Стопаем барабаны по очереди
-            setTimeout(() => {
-                setReels(r => [[result[0][0],result[0][1],result[0][2]], r[1], r[2]]);
-                setSpinningReels([false,true,true]);
-            }, 700);
-            setTimeout(() => {
-                setReels(r => [r[0], [result[1][0],result[1][1],result[1][2]], r[2]]);
-                setSpinningReels([false,false,true]);
-            }, 1200);
-            setTimeout(() => {
-                setReels([result[0],result[1],result[2]]);
-                setSpinningReels([false,false,false]);
-
-                // Проверяем выигрыш — центральная строка (индекс 1)
-                const line = [result[0][1], result[1][1], result[2][1]];
-                let win = 0;
-                let winLabel = '';
-                if (line[0]===line[1] && line[1]===line[2]) {
-                    const sym = getSym(line[0]);
-                    win = bet * sym.mult;
-                    winLabel = `3× ${sym.label} → ×${sym.mult}`;
-                } else if (line[0]===line[1] || line[1]===line[2]) {
-                    const sym = getSym(line[1]);
-                    win = Math.floor(bet * 0.5);
-                    winLabel = `2× ${sym.label} → ×0.5`;
-                }
-                // Джекпот: все 9 одинаковые
-                const all = result.flat();
-                if (all.every(s=>s===all[0])) {
-                    const sym = getSym(all[0]);
-                    win = bet * sym.mult * 3;
-                    winLabel = `🎉 ДЖЕКПОТ! ${sym.label} ×${sym.mult*3}`;
-                }
-                if (win > 0) {
-                    setChkCoins(p => p + win);
-                    setTotalWon(p => p + win);
-                    setLastWin({ amount: win, label: winLabel });
-                    setWinFlash(true);
-                    setTimeout(() => setWinFlash(false), 1500);
-                } else {
-                    setLastWin({ amount: 0, label: 'Не повезло' });
-                }
-                setSpinning(false);
-            }, 1800);
+        // ── Символы ──────────────────────────────────────
+        const SYMS = {
+            // Низкооплачиваемые — карточные на ржавом металле
+            TEN:    { id:'TEN',    label:'10',  tier:'low',  pay:[0,0,2,3,5,8],   color:'#4a5568', glow:'#718096' },
+            J:      { id:'J',      label:'J',   tier:'low',  pay:[0,0,2,4,6,10],  color:'#2d4a3e', glow:'#48bb78' },
+            Q:      { id:'Q',      label:'Q',   tier:'low',  pay:[0,0,3,5,8,12],  color:'#3d2a5e', glow:'#9f7aea' },
+            K:      { id:'K',      label:'K',   tier:'low',  pay:[0,0,4,6,10,15], color:'#4a2c17', glow:'#ed8936' },
+            A:      { id:'A',      label:'A',   tier:'low',  pay:[0,0,5,8,12,20], color:'#1a365d', glow:'#63b3ed' },
+            // Высокооплачиваемые
+            EYE:    { id:'EYE',    label:'ОКО',     tier:'high', pay:[0,0,8,15,25,50],  color:'#1a0533', glow:'#b794f4' },
+            CLAW:   { id:'CLAW',   label:'КОГОТЬ',  tier:'high', pay:[0,0,10,20,40,80], color:'#0d2137', glow:'#4fc3f7' },
+            MINER:  { id:'MINER',  label:'ШАХТЁР',  tier:'high', pay:[0,0,15,30,60,120],color:'#1a2a0d', glow:'#68d391' },
+            VOID:   { id:'VOID',   label:'ВОЙД',    tier:'void', pay:[0,0,25,60,120,250],color:'#0a0a1a', glow:'#f6e05e' },
+            // Спец
+            WILD:   { id:'WILD',   label:'ДИКИЙ',   tier:'wild', pay:[],               color:'#1a0d2e', glow:'#f687b3' },
+            SCATTER:{ id:'SCATTER',label:'КЛЮЧ',    tier:'scatter', pay:[],            color:'#0d1a0d', glow:'#9ae6b4' },
+            CRACK:  { id:'CRACK',  label:'РАЗЛОМ',  tier:'crack', pay:[],              color:'#1a0a0a', glow:'#fc8181' },
         };
 
+        const BASE_POOL = [
+            ...Array(20).fill('TEN'), ...Array(18).fill('J'), ...Array(16).fill('Q'),
+            ...Array(14).fill('K'),   ...Array(12).fill('A'),
+            ...Array(8).fill('EYE'),  ...Array(6).fill('CLAW'), ...Array(5).fill('MINER'),
+            ...Array(3).fill('VOID'),
+            ...Array(6).fill('WILD'), ...Array(4).fill('SCATTER'), ...Array(4).fill('CRACK'),
+        ];
+
+        const ROWS = 5, COLS = 6;
+        const BET_OPTS = [10, 50, 100, 500, 1000, 5000];
+
+        // ── State ─────────────────────────────────────────
+        const [bet, setBet] = useState(50);
+        const [grid, setGrid] = useState(() => Array.from({length:ROWS}, () => Array.from({length:COLS}, () => BASE_POOL[Math.floor(Math.random()*BASE_POOL.length)])));
+        const [spinning, setSpinning] = useState(false);
+        const [spinAnim, setSpinAnim] = useState(false);
+        const [wins, setWins] = useState([]); // [{symId, count, payout}]
+        const [totalWin, setTotalWin] = useState(null);
+        const [mult, setMult] = useState(1);
+        const [scatterCount, setScatterCount] = useState(0);
+        // Бонус
+        const [phase, setPhase] = useState('base'); // base | portal_pick | freespin | synthesis | result
+        const [portal, setPortal] = useState(null); // blue|violet|red
+        const [freeSpins, setFreeSpins] = useState(0);
+        const [freeSpinsLeft, setFreeSpinsLeft] = useState(0);
+        const [fsMult, setFsMult] = useState(1);
+        const [stickyWilds, setStickyWilds] = useState([]); // [{r,c}] для синего портала
+        const [synthBar, setSynthBar] = useState(0); // 0-100
+        const [synthActive, setSynthActive] = useState(false);
+        const [bigWin, setBigWin] = useState(null); // 'big'|'mega'|'jackpot'
+        const [stats, setStats] = useState({spins:0, won:0, lost:0});
+        const [highlightCells, setHighlightCells] = useState([]);
+        const [crackCells, setCrackCells] = useState([]);
+        const [lastMsg, setLastMsg] = useState('');
+
+        const balance = isInfinite ? Infinity : chkCoins;
+
+        // ── Helpers ───────────────────────────────────────
+        const randSym = (pool=BASE_POOL) => pool[Math.floor(Math.random()*pool.length)];
+        const getSym = id => SYMS[id] || SYMS.TEN;
+
+        const makeGrid = (overrides={}, pool=BASE_POOL) =>
+            Array.from({length:ROWS}, (_, r) =>
+                Array.from({length:COLS}, (_, c) =>
+                    (overrides[`${r},${c}`] || randSym(pool))
+                )
+            );
+
+        // Scatter-pays: считаем сколько каждого символа на экране
+        const calcWins = (g, betAmt, multiplier=1, sWilds=[]) => {
+            const counts = {};
+            g.forEach((row,r) => row.forEach((sid,c) => {
+                let s = sid;
+                // Дикий заменяет любой не-scatter, не-crack не-wild
+                if (s === 'WILD' || sWilds.find(w=>w.r===r&&w.c===c)) s = '_WILD_';
+                counts[s] = (counts[s]||0) + 1;
+            }));
+
+            let results = [];
+            let totalPay = 0;
+
+            // Обычные символы
+            Object.entries(counts).forEach(([sid, cnt]) => {
+                if (sid === '_WILD_' || sid === 'SCATTER' || sid === 'CRACK') return;
+                const sym = SYMS[sid];
+                if (!sym || !sym.pay) return;
+                // Wild добавляет свой count к каждому символу
+                const effCnt = Math.min(cnt + (counts['_WILD_']||0), COLS*ROWS);
+                const pay = sym.pay[Math.min(effCnt, sym.pay.length-1)] || 0;
+                if (pay > 0) {
+                    const payout = pay * betAmt * multiplier;
+                    totalPay += payout;
+                    results.push({symId:sid, count:effCnt, payout});
+                }
+            });
+
+            return { results, totalPay };
+        };
+
+        // Найти CRACK-символы и уничтожить соседей
+        const applyCracks = (g) => {
+            const newG = g.map(r=>[...r]);
+            const cracked = [];
+            let addMult = 0;
+            g.forEach((row,r) => row.forEach((sid,c) => {
+                if (sid === 'CRACK') {
+                    // Соседи по кресту
+                    [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr,nc])=>{
+                        if (nr>=0&&nr<ROWS&&nc>=0&&nc<COLS && newG[nr][nc]!=='CRACK'&&newG[nr][nc]!=='SCATTER'&&newG[nr][nc]!=='WILD') {
+                            cracked.push({r:nr,c:nc});
+                            newG[nr][nc] = randSym();
+                            addMult++;
+                        }
+                    });
+                    newG[r][c] = randSym();
+                }
+            }));
+            return { newG, cracked, addMult };
+        };
+
+        // Scatter count
+        const countScatters = (g) => g.flat().filter(s=>s==='SCATTER').length;
+        const countVoids = (g) => g.flat().filter(s=>s==='VOID').length;
+
+        // ── Spin logic ────────────────────────────────────
+        const doSpin = async (isFree=false, curPortal=null, curFsMult=1, curStickyWilds=[]) => {
+            setSpinning(true);
+            setSpinAnim(true);
+            setWins([]);
+            setTotalWin(null);
+            setHighlightCells([]);
+            setCrackCells([]);
+            setLastMsg('');
+            setBigWin(null);
+
+            if (!isFree && !isInfinite) setChkCoins(p=>p-bet);
+            if (!isFree) setStats(s=>({...s, spins:s.spins+1, lost:s.lost+bet}));
+
+            await new Promise(r=>setTimeout(r,600));
+            setSpinAnim(false);
+
+            // Генерируем grid
+            let pool = [...BASE_POOL];
+            // Красный портал — убираем низкооплачиваемые
+            if (curPortal==='red') pool = pool.filter(s=>!['TEN','J','Q','K','A'].includes(s));
+            let g = makeGrid({}, pool);
+
+            // Синий портал — возвращаем липкие Wild
+            if (curPortal==='blue' && curStickyWilds.length) {
+                curStickyWilds.forEach(({r,c})=>{ g[r][c]='WILD'; });
+            }
+
+            // Красный — превращаем часть VOID в мега (визуально 2x2)
+            let megaCells = [];
+            if (curPortal==='red') {
+                // Ищем позиции и делаем 2x2 блоки из VOID
+                for(let r=0;r<ROWS-1;r++) for(let c=0;c<COLS-1;c++) {
+                    if(g[r][c]==='VOID'&&Math.random()<0.4) {
+                        g[r][c]=g[r][c+1]=g[r+1][c]=g[r+1][c+1]='VOID';
+                        megaCells.push(`${r},${c}`,`${r},${c+1}`,`${r+1},${c}`,`${r+1},${c+1}`);
+                    }
+                }
+            }
+
+            // Apply CRACK
+            const { newG, cracked, addMult } = applyCracks(g);
+            if (cracked.length) {
+                setCrackCells(cracked);
+                setTimeout(()=>setCrackCells([]),800);
+            }
+            g = newG;
+
+            // Считаем новые Wild от синего (sticky)
+            let newStickyWilds = [...curStickyWilds];
+            if (curPortal==='blue') {
+                g.forEach((row,r)=>row.forEach((sid,c)=>{ if(sid==='WILD'&&!newStickyWilds.find(w=>w.r===r&&w.c===c)) newStickyWilds.push({r,c}); }));
+            }
+
+            // Мультипликатор
+            let curMult = curFsMult;
+            if (curPortal==='violet') curMult += addMult;
+            if (addMult > 0) curMult += addMult;
+
+            // Выигрыши
+            const { results, totalPay } = calcWins(g, bet, curMult, newStickyWilds);
+
+            // Синтез — копим VOID
+            const voidCount = countVoids(g);
+            setSynthBar(prev => {
+                const next = Math.min(prev + voidCount*15, 100);
+                return next;
+            });
+
+            // Scatter
+            const sc = countScatters(g);
+            setScatterCount(sc);
+
+            setGrid(g);
+            setWins(results);
+
+            let actualWin = totalPay;
+
+            // Подсветка выигрышных символов
+            if (results.length) {
+                const winSymIds = new Set(results.map(r=>r.symId));
+                const cells = [];
+                g.forEach((row,r)=>row.forEach((sid,c)=>{ if(winSymIds.has(sid)) cells.push(`${r},${c}`); }));
+                setHighlightCells(cells);
+            }
+
+            // Начисляем выигрыш
+            if (actualWin > 0) {
+                if (!isInfinite) setChkCoins(p=>p+actualWin);
+                setStats(s=>({...s, won:s.won+actualWin}));
+            }
+            setTotalWin(actualWin);
+
+            // Big win флаш
+            const ratio = actualWin/bet;
+            if (ratio >= 100) setBigWin('jackpot');
+            else if (ratio >= 30) setBigWin('mega');
+            else if (ratio >= 10) setBigWin('big');
+
+            setMult(curMult);
+            setSpinning(false);
+
+            // Триггер бонуса
+            if (sc >= 3 && phase==='base') {
+                setTimeout(()=>{ setPhase('portal_pick'); setLastMsg('🔑 КЛЮЧИ БЕЗДНЫ! Выбери портал!'); }, 800);
+                return { newStickyWilds, curMult };
+            }
+
+            return { newStickyWilds, curMult };
+        };
+
+        // ── Freespin runner ───────────────────────────────
+        const runFreespins = async (portalChoice, spinsCount, startMult) => {
+            let curMult = startMult;
+            let curStickyWilds = [];
+            let remaining = spinsCount;
+            setFreeSpinsLeft(remaining);
+
+            while (remaining > 0) {
+                setFreeSpinsLeft(remaining);
+                const res = await doSpin(true, portalChoice, curMult, curStickyWilds);
+                curMult = res.curMult;
+                curStickyWilds = portalChoice==='blue' ? res.newStickyWilds : [];
+                remaining--;
+                await new Promise(r=>setTimeout(r,400));
+            }
+            setPhase('base');
+            setFsMult(1);
+            setFreeSpinsLeft(0);
+            setLastMsg('🎊 Фриспины завершены!');
+        };
+
+        // ── Portal pick ───────────────────────────────────
+        const pickPortal = (p) => {
+            setPortal(p);
+            let spins, startMult;
+            if(p==='blue')   { spins=10; startMult=2; }
+            if(p==='violet') { spins=8;  startMult=1; }
+            if(p==='red')    { spins=5;  startMult=1; }
+            setFreeSpins(spins);
+            setFreeSpinsLeft(spins);
+            setFsMult(startMult);
+            setPhase('freespin');
+            setLastMsg(`Запускаем ${spins} фриспинов...`);
+            setTimeout(()=>runFreespins(p, spins, startMult), 800);
+        };
+
+        // ── Main spin button ──────────────────────────────
+        const handleSpin = () => {
+            if (spinning) return;
+            if (phase==='freespin') return; // автоматически
+            if (!isInfinite && chkCoins < bet) return;
+            doSpin(false);
+        };
+
+        // ── Bonus buy ─────────────────────────────────────
+        const buyBonus = (type) => {
+            const cost = type==='random' ? bet*80 : bet*350;
+            if (!isInfinite && chkCoins < cost) return;
+            if (!isInfinite) setChkCoins(p=>p-cost);
+            const p = type==='random' ? ['blue','violet','red'][Math.floor(Math.random()*3)] : 'red';
+            setPortal(p); setPhase('portal_pick');
+            setTimeout(()=>pickPortal(p), 100);
+        };
+
+        // ── Render helpers ────────────────────────────────
+        const SymbolSVG = ({ id, size=52 }) => {
+            const sym = getSym(id);
+            const s = size;
+            const fs = s*0.38;
+            const subfs = s*0.22;
+            const isHigh = ['EYE','CLAW','MINER','VOID','WILD','SCATTER','CRACK'].includes(id);
+
+            const glowStyle = { filter:`drop-shadow(0 0 ${s*0.12}px ${sym.glow})` };
+
+            // SVG символы
+            if (id==='VOID') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#0a0a1a"/>
+                    <rect width="60" height="60" rx="10" fill={`url(#voidGrad)`} opacity="0.7"/>
+                    <defs>
+                        <radialGradient id="voidGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#f6e05e" stopOpacity="0.8"/>
+                            <stop offset="40%" stopColor="#9f7aea" stopOpacity="0.6"/>
+                            <stop offset="100%" stopColor="#1a0533" stopOpacity="1"/>
+                        </radialGradient>
+                    </defs>
+                    {/* Кристалл */}
+                    <polygon points="30,5 50,22 44,50 16,50 10,22" fill="none" stroke="#f6e05e" strokeWidth="1.5" opacity="0.9"/>
+                    <polygon points="30,12 44,24 40,44 20,44 16,24" fill={`url(#innerVoid)`} opacity="0.8"/>
+                    <defs>
+                        <radialGradient id="innerVoid" cx="50%" cy="40%" r="50%">
+                            <stop offset="0%" stopColor="#fff" stopOpacity="0.9"/>
+                            <stop offset="50%" stopColor="#9f7aea" stopOpacity="0.7"/>
+                            <stop offset="100%" stopColor="#0a0a1a" stopOpacity="1"/>
+                        </radialGradient>
+                    </defs>
+                    {/* Звёзды внутри */}
+                    {[[20,22],[30,18],[38,28],[25,38],[35,35]].map(([x,y],i)=>(
+                        <circle key={i} cx={x} cy={y} r="1.2" fill="white" opacity={0.6+i*0.08}/>
+                    ))}
+                    <text x="30" y="57" textAnchor="middle" fontSize="7" fill={sym.glow} fontFamily="monospace" fontWeight="800">VOID</text>
+                </svg>
+            );
+            if (id==='EYE') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#1a0533"/>
+                    <ellipse cx="30" cy="30" rx="22" ry="13" fill="#2d1b4e" stroke={sym.glow} strokeWidth="1"/>
+                    <ellipse cx="30" cy="30" rx="12" ry="12" fill="#0d0d1a"/>
+                    <circle cx="30" cy="30" r="8" fill="#9f7aea"/>
+                    <circle cx="30" cy="30" r="5" fill="#1a0533"/>
+                    <circle cx="27" cy="27" r="2" fill="white" opacity="0.8"/>
+                    {/* Ресницы */}
+                    {[-15,-5,5,15].map((dx,i)=>(
+                        <line key={i} x1={30+dx} y1="17" x2={30+dx*0.5} y2="12" stroke={sym.glow} strokeWidth="1" opacity="0.6"/>
+                    ))}
+                    <text x="30" y="57" textAnchor="middle" fontSize="7" fill={sym.glow} fontFamily="monospace" fontWeight="800">ОКО</text>
+                </svg>
+            );
+            if (id==='CLAW') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#0d2137"/>
+                    {/* Кость руки */}
+                    <line x1="30" y1="48" x2="30" y2="28" stroke="#b0c4de" strokeWidth="3" strokeLinecap="round"/>
+                    {/* Пальцы-когти */}
+                    {[[-12,-8],[-5,-14],[5,-14],[12,-8]].map(([dx,dy],i)=>(
+                        <path key={i} d={`M30,28 Q${30+dx*0.5},${28+dy*0.3} ${30+dx},${28+dy}`} fill="none" stroke="#b0c4de" strokeWidth="2.5" strokeLinecap="round"/>
+                    ))}
+                    {/* Кристалл в руке */}
+                    <polygon points="30,36 36,42 30,50 24,42" fill={sym.glow} opacity="0.9"/>
+                    <polygon points="30,39 34,43 30,47 26,43" fill="white" opacity="0.5"/>
+                    <text x="30" y="58" textAnchor="middle" fontSize="6.5" fill={sym.glow} fontFamily="monospace" fontWeight="800">КОГОТЬ</text>
+                </svg>
+            );
+            if (id==='MINER') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#1a2a0d"/>
+                    {/* Шлем */}
+                    <ellipse cx="30" cy="22" rx="14" ry="12" fill="#2d4a1e" stroke="#68d391" strokeWidth="1"/>
+                    <ellipse cx="30" cy="18" rx="10" ry="6" fill="#1a3a10"/>
+                    {/* Визор */}
+                    <ellipse cx="30" cy="24" rx="8" ry="5" fill="#00ff88" opacity="0.4"/>
+                    {/* Экзокостюм */}
+                    <rect x="20" y="34" width="20" height="16" rx="4" fill="#2d4a1e" stroke="#68d391" strokeWidth="1"/>
+                    {/* Бур */}
+                    <rect x="44" y="38" width="12" height="5" rx="2" fill="#4a5568" transform="rotate(-30,44,40)"/>
+                    <polygon points="54,36 60,40 54,44" fill="#68d391" transform="rotate(-30,54,40)"/>
+                    {/* Огни на шлеме */}
+                    <circle cx="23" cy="18" r="2" fill="#68d391" opacity="0.9"/>
+                    <text x="30" y="58" textAnchor="middle" fontSize="6" fill={sym.glow} fontFamily="monospace" fontWeight="800">ШАХТЁР</text>
+                </svg>
+            );
+            if (id==='WILD') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#1a0d2e"/>
+                    {/* Голограмма — Смотритель */}
+                    <circle cx="30" cy="24" r="12" fill="none" stroke={sym.glow} strokeWidth="1" strokeDasharray="3,2"/>
+                    <circle cx="30" cy="24" r="8" fill="rgba(246,135,179,0.15)" stroke={sym.glow} strokeWidth="0.5"/>
+                    <circle cx="30" cy="24" r="4" fill={sym.glow} opacity="0.7"/>
+                    {/* Сканирующие линии */}
+                    {[18,24,30].map((y,i)=>(
+                        <line key={i} x1="14" y1={y} x2="46" y2={y} stroke={sym.glow} strokeWidth="0.5" opacity="0.3"/>
+                    ))}
+                    {/* x2 бейдж */}
+                    <rect x="18" y="38" width="24" height="12" rx="6" fill={sym.glow}/>
+                    <text x="30" y="48" textAnchor="middle" fontSize="9" fill="#1a0d2e" fontFamily="monospace" fontWeight="900">×2</text>
+                </svg>
+            );
+            if (id==='SCATTER') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#0d1a0d"/>
+                    {/* Скипетр */}
+                    <rect x="28" y="38" width="4" height="16" rx="2" fill="#9ae6b4"/>
+                    <polygon points="30,8 36,20 44,22 36,30 38,40 30,34 22,40 24,30 16,22 24,20" fill={sym.glow} stroke="rgba(154,230,180,0.5)" strokeWidth="1"/>
+                    <circle cx="30" cy="24" r="5" fill="white" opacity="0.8"/>
+                    <text x="30" y="57" textAnchor="middle" fontSize="6.5" fill={sym.glow} fontFamily="monospace" fontWeight="800">КЛЮЧ</text>
+                </svg>
+            );
+            if (id==='CRACK') return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#1a0a0a"/>
+                    {/* Молния-разлом */}
+                    <polygon points="35,5 20,32 30,32 25,55 45,25 33,25" fill={sym.glow} stroke="rgba(252,129,129,0.4)" strokeWidth="1"/>
+                    {/* Трещины */}
+                    {[[10,15,25,35],[45,10,30,40],[5,45,20,55]].map(([x1,y1,x2,y2],i)=>(
+                        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={sym.glow} strokeWidth="1" opacity="0.4"/>
+                    ))}
+                    <text x="30" y="57" textAnchor="middle" fontSize="6" fill={sym.glow} fontFamily="monospace" fontWeight="800">РАЗЛОМ</text>
+                </svg>
+            );
+
+            // Карточные символы — на ржавом металле
+            const neonColors = {TEN:'#718096',J:'#68d391',Q:'#9f7aea',K:'#ed8936',A:'#63b3ed'};
+            const nc = neonColors[id] || '#718096';
+            return (
+                <svg viewBox="0 0 60 60" width={s} height={s} style={glowStyle}>
+                    <rect width="60" height="60" rx="10" fill="#1a1a1a"/>
+                    {/* Ржавая текстура */}
+                    {[[5,8],[52,12],[8,50],[55,48],[30,5]].map(([x,y],i)=>(
+                        <circle key={i} cx={x} cy={y} r={3+i} fill="#2d2010" opacity="0.5"/>
+                    ))}
+                    {/* Трещины */}
+                    {[[8,20,25,35],[40,8,52,28]].map(([x1,y1,x2,y2],i)=>(
+                        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={nc} strokeWidth="0.8" opacity="0.4"/>
+                    ))}
+                    {/* Буква */}
+                    <text x="30" y="40" textAnchor="middle" fontSize="30" fontWeight="900" fill={nc} fontFamily="serif" style={{textShadow:`0 0 10px ${nc}`}}>{sym.label}</text>
+                    <text x="8" y="16" fontSize="10" fill={nc} fontFamily="serif" opacity="0.7">{sym.label}</text>
+                </svg>
+            );
+        };
+
+        // Портал pick экран
+        if (phase==='portal_pick') return (
+            <div style={{minHeight:'100vh',background:'radial-gradient(ellipse at center,#1a0533 0%,#0a0a1a 100%)',padding:'20px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                <div style={{textAlign:'center',marginBottom:'32px'}}>
+                    <p style={{color:'rgba(200,150,255,0.6)',fontSize:'0.8rem',letterSpacing:'0.2em',marginBottom:'8px'}}>✦ БЕЗДНА ПРОБУЖДАЕТСЯ ✦</p>
+                    <h2 style={{color:'white',fontSize:'1.5rem',fontWeight:700,marginBottom:'8px'}}>Выбери Портал</h2>
+                    <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.85rem'}}>Собрано {scatterCount} Ключей Бездны</p>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:'16px',width:'100%',maxWidth:'360px'}}>
+                    {[
+                        {key:'blue',  name:'Синий Портал',   sub:'Стабильность',  desc:'10 фриспинов · ×2 ко всем · Wild прилипают',   grad:'linear-gradient(135deg,#1e3a5f,#2b6cb0)', glow:'rgba(66,153,225,0.4)', icon:'💙'},
+                        {key:'violet',name:'Фиолетовый Портал',sub:'Риск',        desc:'8 фриспинов · множитель растёт с каждым каскадом', grad:'linear-gradient(135deg,#2d1b69,#6b21a8)', glow:'rgba(139,92,246,0.4)', icon:'💜'},
+                        {key:'red',   name:'Красный Портал', sub:'Бездна',        desc:'5 фриспинов · мега-символы · только высокие',      grad:'linear-gradient(135deg,#4a0808,#991b1b)', glow:'rgba(239,68,68,0.4)',  icon:'❤️'},
+                    ].map(p=>(
+                        <button key={p.key} onClick={()=>pickPortal(p.key)} style={{background:p.grad,border:`1px solid ${p.glow.replace('0.4','0.6')}`,borderRadius:'16px',padding:'20px',textAlign:'left',cursor:'pointer',boxShadow:`0 0 30px ${p.glow}`,transition:'transform 0.2s'}}
+                            onMouseEnter={e=>e.currentTarget.style.transform='scale(1.02)'}
+                            onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+                        >
+                            <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'8px'}}>
+                                <span style={{fontSize:'1.6rem'}}>{p.icon}</span>
+                                <div>
+                                    <p style={{color:'white',fontWeight:700,fontSize:'1rem',margin:0}}>{p.name}</p>
+                                    <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.75rem',margin:0}}>{p.sub}</p>
+                                </div>
+                            </div>
+                            <p style={{color:'rgba(255,255,255,0.7)',fontSize:'0.82rem',margin:0}}>{p.desc}</p>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+
+        // ── Основной экран ────────────────────────────────
+        const isFsPhase = phase==='freespin';
+        const canSpin = !spinning && (isInfinite || chkCoins >= bet) && phase==='base';
+
         return (
-            <div style={{minHeight:'100vh',background:'linear-gradient(180deg,#0f0f1a 0%,#1a0a2e 100%)',padding:'0 0 40px 0'}}>
-                {/* Шапка */}
-                <div style={{padding:'16px',display:'flex',alignItems:'center',gap:'12px',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
-                    <button onClick={onBack} style={{background:'rgba(255,255,255,0.08)',border:'none',borderRadius:'10px',padding:'8px 12px',color:'white',cursor:'pointer',fontSize:'1rem'}}>←</button>
-                    <h1 style={{color:'white',margin:0,fontSize:'1.3rem',fontWeight:700}}>🎰 CHK Casino</h1>
-                    <div style={{marginLeft:'auto',background:'rgba(255,255,255,0.1)',borderRadius:'20px',padding:'6px 14px'}}>
-                        <span style={{color:'#fbbf24',fontWeight:700,fontSize:'0.95rem'}}>{chkCoins === Infinity ? '∞' : chkCoins} CHK</span>
+            <div style={{minHeight:'100vh',background:'radial-gradient(ellipse at 50% 30%,#1a0533 0%,#0f0f1a 60%,#000 100%)',paddingBottom:'40px'}}>
+                {/* ── Шапка ── */}
+                <div style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:'10px',borderBottom:'1px solid rgba(139,92,246,0.2)',background:'rgba(0,0,0,0.4)',backdropFilter:'blur(10px)'}}>
+                    <button onClick={onBack} style={{background:'rgba(139,92,246,0.15)',border:'1px solid rgba(139,92,246,0.3)',borderRadius:'10px',padding:'8px 12px',color:'white',cursor:'pointer',fontSize:'0.9rem'}}>←</button>
+                    <div>
+                        <p style={{color:'white',fontWeight:700,fontSize:'1rem',margin:0}}>💎 Void Crystals</p>
+                        <p style={{color:'rgba(200,150,255,0.6)',fontSize:'0.7rem',margin:0,letterSpacing:'0.1em'}}>ХРОНИКИ БЕЗДНЫ</p>
+                    </div>
+                    <div style={{marginLeft:'auto',background:'rgba(246,224,94,0.1)',border:'1px solid rgba(246,224,94,0.3)',borderRadius:'20px',padding:'6px 14px'}}>
+                        <span style={{color:'#f6e05e',fontWeight:700,fontSize:'0.9rem'}}>{isInfinite?'∞':chkCoins} CHK</span>
                     </div>
                 </div>
 
-                <div style={{padding:'16px'}}>
-                    {/* Слот машина */}
-                    <div style={{background:'linear-gradient(135deg,#1e1b4b,#312e81)',borderRadius:'20px',padding:'20px',marginBottom:'16px',boxShadow:'0 0 40px rgba(139,92,246,0.3)',border:'1px solid rgba(139,92,246,0.3)'}}>
-                        {/* Огни вверху */}
-                        <div style={{display:'flex',justifyContent:'center',gap:'8px',marginBottom:'16px'}}>
-                            {['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899'].map((c,i)=>(
-                                <div key={i} style={{width:'10px',height:'10px',borderRadius:'50%',background:c,boxShadow:`0 0 8px ${c}`,animation:`pulse ${0.5+i*0.1}s ease-in-out infinite alternate`}}/>
-                            ))}
+                <div style={{padding:'12px 12px 0'}}>
+                    {/* ── Статус фриспинов ── */}
+                    {isFsPhase && (
+                        <div style={{background:'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(236,72,153,0.2))',border:'1px solid rgba(139,92,246,0.4)',borderRadius:'12px',padding:'10px 14px',marginBottom:'10px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                            <div>
+                                <p style={{color:'#c084fc',fontWeight:700,fontSize:'0.85rem',margin:0}}>🎰 ФРИСПИНЫ</p>
+                                <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.75rem',margin:0}}>{portal==='blue'?'Синий·×2':''}{ portal==='violet'?'Фиолетовый':''}{ portal==='red'?'Красный·Мега':''}</p>
+                            </div>
+                            <div style={{textAlign:'right'}}>
+                                <p style={{color:'white',fontWeight:900,fontSize:'1.4rem',margin:0}}>{freeSpinsLeft}</p>
+                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem',margin:0}}>осталось</p>
+                            </div>
                         </div>
+                    )}
 
-                        {/* Барабаны */}
-                        <div style={{display:'flex',gap:'8px',justifyContent:'center',marginBottom:'16px'}}>
-                            {reels.map((reel, ri) => (
-                                <div key={ri} style={{background:'rgba(0,0,0,0.4)',borderRadius:'14px',padding:'8px',border:'2px solid rgba(255,255,255,0.1)',overflow:'hidden',position:'relative'}}>
-                                    {/* Подсветка центральной строки */}
-                                    <div style={{position:'absolute',top:'50%',left:0,right:0,height:'70px',transform:'translateY(-50%)',background:'rgba(255,255,255,0.04)',borderTop:'1px solid rgba(255,255,255,0.15)',borderBottom:'1px solid rgba(255,255,255,0.15)',pointerEvents:'none',zIndex:1}}/>
-                                    <div style={{display:'flex',flexDirection:'column',gap:'4px',animation:spinningReels[ri]?'slotSpin 0.1s linear infinite':'none'}}>
-                                        {reel.map((symId, si) => {
-                                            const sym = getSym(symId);
-                                            const isCenter = si === 1;
-                                            return (
-                                                <div key={si} style={{width:'70px',height:'64px',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'10px',background:isCenter?'rgba(255,255,255,0.06)':'transparent',transform:isCenter?'scale(1.05)':'scale(0.9)',transition:'transform 0.2s',opacity:isCenter?1:0.55}}>
-                                                    {sym.svg}
-                                                </div>
-                                            );
-                                        })}
+                    {/* ── Шкала синтеза ── */}
+                    <div style={{background:'rgba(0,0,0,0.4)',borderRadius:'10px',padding:'8px 12px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'10px',border:'1px solid rgba(246,224,94,0.15)'}}>
+                        <span style={{color:'#f6e05e',fontSize:'0.8rem',flexShrink:0}}>⚗️ Синтез</span>
+                        <div style={{flex:1,height:'6px',background:'rgba(255,255,255,0.08)',borderRadius:'3px',overflow:'hidden'}}>
+                            <div style={{height:'100%',width:`${synthBar}%`,background:'linear-gradient(90deg,#9f7aea,#f6e05e)',borderRadius:'3px',transition:'width 0.5s ease',boxShadow:synthBar>50?'0 0 8px rgba(246,224,94,0.5)':''}}/>
+                        </div>
+                        <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.75rem',flexShrink:0}}>{Math.round(synthBar)}%</span>
+                    </div>
+
+                    {/* ── СЕТКА 6×5 ── */}
+                    <div style={{background:'rgba(0,0,0,0.5)',borderRadius:'16px',padding:'10px',border:'1px solid rgba(139,92,246,0.25)',boxShadow:'0 0 40px rgba(139,92,246,0.1)',marginBottom:'10px',position:'relative',overflow:'hidden'}}>
+                        {/* Портальный вихрь фон */}
+                        <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(139,92,246,0.06) 0%,transparent 70%)',pointerEvents:'none'}}/>
+
+                        <div style={{display:'grid',gridTemplateColumns:`repeat(${COLS},1fr)`,gap:'4px'}}>
+                            {grid.map((row,r)=>row.map((sid,c)=>{
+                                const key=`${r},${c}`;
+                                const isHL = highlightCells.includes(key);
+                                const isCrk = crackCells.find(x=>x.r===r&&x.c===c);
+                                const isSW = stickyWilds.find(w=>w.r===r&&w.c===c);
+                                const sym = getSym(sid);
+                                return (
+                                    <div key={key} style={{
+                                        borderRadius:'8px',
+                                        background: isHL?`rgba(${sid==='VOID'?'246,224,94':'139,92,246'},0.15)`:'rgba(255,255,255,0.03)',
+                                        border:`1px solid ${isHL?sym.glow:'rgba(255,255,255,0.06)'}`,
+                                        display:'flex',alignItems:'center',justifyContent:'center',
+                                        aspectRatio:'1/1',overflow:'hidden',
+                                        transform: spinAnim?`translateY(${-10-Math.random()*5}px)`:(isHL?'scale(1.05)':'scale(1)'),
+                                        transition:'all 0.3s',
+                                        boxShadow: isHL?`0 0 12px ${sym.glow}30`:'',
+                                        opacity: isCrk?0.3:1,
+                                        position:'relative'
+                                    }}>
+                                        <SymbolSVG id={sid} size={Math.min(48, Math.floor((window.innerWidth-60)/COLS)-6)} />
+                                        {isSW && <div style={{position:'absolute',inset:0,border:'2px solid #f687b3',borderRadius:'8px',boxShadow:'inset 0 0 8px rgba(246,135,179,0.3)'}}/>}
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Результат */}
-                        <div style={{minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            {lastWin && (
-                                <div style={{
-                                    textAlign:'center',
-                                    padding:'8px 20px',
-                                    borderRadius:'20px',
-                                    background: lastWin.amount>0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.15)',
-                                    border: `1px solid ${lastWin.amount>0?'rgba(16,185,129,0.4)':'rgba(239,68,68,0.3)'}`,
-                                    animation: winFlash ? 'winPulse 0.3s ease infinite' : 'none'
-                                }}>
-                                    {lastWin.amount > 0
-                                        ? <span style={{color:'#10b981',fontWeight:700,fontSize:'1rem'}}>+{lastWin.amount} CHK · {lastWin.label}</span>
-                                        : <span style={{color:'#ef4444',fontSize:'0.9rem'}}>Не повезло — попробуй ещё!</span>
-                                    }
-                                </div>
-                            )}
+                                );
+                            }))}
                         </div>
                     </div>
 
-                    {/* Ставка */}
-                    <div style={{background:'rgba(255,255,255,0.06)',borderRadius:'16px',padding:'16px',marginBottom:'12px',border:'1px solid rgba(255,255,255,0.08)'}}>
-                        <p style={{color:'rgba(255,255,255,0.6)',fontSize:'0.8rem',marginBottom:'10px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Ставка</p>
-                        <div style={{display:'flex',gap:'8px',marginBottom:'10px',flexWrap:'wrap'}}>
-                            {BET_OPTIONS.map(v=>(
-                                <button key={v} onClick={()=>setBet(v)} style={{
-                                    padding:'8px 14px',borderRadius:'10px',border:'none',cursor:'pointer',fontWeight:600,fontSize:'0.85rem',
-                                    background: bet===v ? '#7c3aed' : 'rgba(255,255,255,0.1)',
-                                    color: bet===v ? 'white' : 'rgba(255,255,255,0.7)',
-                                    boxShadow: bet===v ? '0 0 12px rgba(124,58,237,0.5)' : 'none',
-                                    transition:'all 0.2s'
+                    {/* ── Big Win флаш ── */}
+                    {bigWin && (
+                        <div style={{textAlign:'center',padding:'12px',marginBottom:'10px',borderRadius:'12px',background:bigWin==='jackpot'?'linear-gradient(135deg,rgba(246,224,94,0.2),rgba(236,72,153,0.2))':'rgba(139,92,246,0.15)',border:`1px solid ${bigWin==='jackpot'?'rgba(246,224,94,0.5)':'rgba(139,92,246,0.3)'}`}}>
+                            <p style={{color:bigWin==='jackpot'?'#f6e05e':'#c084fc',fontWeight:900,fontSize:bigWin==='jackpot'?'1.4rem':'1.1rem',margin:0}}>
+                                {bigWin==='jackpot'?'🏆 ДЖЕКПОТ!':bigWin==='mega'?'💎 МЕГА ВЫИГРЫШ!':'⚡ БОЛЬШОЙ ВЫИГРЫШ!'}
+                            </p>
+                            <p style={{color:'white',fontWeight:700,fontSize:'1.2rem',margin:0}}>+{totalWin} CHK</p>
+                        </div>
+                    )}
+
+                    {/* ── Выигрыши ── */}
+                    {wins.length>0 && !bigWin && totalWin>0 && (
+                        <div style={{background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.25)',borderRadius:'12px',padding:'10px 12px',marginBottom:'10px'}}>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                                {wins.slice(0,5).map((w,i)=>(
+                                    <span key={i} style={{background:'rgba(16,185,129,0.15)',borderRadius:'20px',padding:'3px 10px',color:'#6ee7b7',fontSize:'0.78rem',fontWeight:600}}>
+                                        {getSym(w.symId).label}×{w.count} → +{w.payout}
+                                    </span>
+                                ))}
+                            </div>
+                            <p style={{color:'#10b981',fontWeight:700,fontSize:'0.95rem',margin:'6px 0 0'}}>Итого: +{totalWin} CHK {mult>1?`(×${mult})`:''}  </p>
+                        </div>
+                    )}
+                    {totalWin===0 && wins.length===0 && totalWin!==null && (
+                        <div style={{textAlign:'center',padding:'8px',color:'rgba(255,255,255,0.3)',fontSize:'0.8rem',marginBottom:'8px'}}>Не повезло — крути снова</div>
+                    )}
+
+                    {/* ── Сообщение ── */}
+                    {lastMsg && <div style={{textAlign:'center',color:'#c084fc',fontSize:'0.85rem',marginBottom:'8px',fontWeight:500}}>{lastMsg}</div>}
+
+                    {/* ── Ставка ── */}
+                    <div style={{background:'rgba(0,0,0,0.4)',borderRadius:'12px',padding:'10px 12px',marginBottom:'10px',border:'1px solid rgba(255,255,255,0.06)'}}>
+                        <div style={{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap'}}>
+                            {BET_OPTS.map(v=>(
+                                <button key={v} onClick={()=>setBet(v)} disabled={isFsPhase} style={{
+                                    padding:'7px 12px',borderRadius:'8px',border:'none',cursor:isFsPhase?'not-allowed':'pointer',fontWeight:600,fontSize:'0.82rem',
+                                    background:bet===v?'linear-gradient(135deg,#7c3aed,#a855f7)':'rgba(255,255,255,0.08)',
+                                    color:bet===v?'white':'rgba(255,255,255,0.6)',
+                                    boxShadow:bet===v?'0 0 10px rgba(124,58,237,0.4)':'none',transition:'all 0.15s',
+                                    opacity:isFsPhase?0.5:1
                                 }}>{v}</button>
                             ))}
                         </div>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                            <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem'}}>Ставка: <strong style={{color:'#fbbf24'}}>{bet} CHK</strong></span>
-                            <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem'}}>Баланс: <strong style={{color:chkCoins<bet?'#ef4444':'white'}}>{chkCoins===Infinity?'∞':chkCoins}</strong></span>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.78rem'}}>Ставка: <strong style={{color:'#f6e05e'}}>{bet} CHK</strong></span>
+                            <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.78rem'}}>× <strong style={{color:mult>1?'#c084fc':'rgba(255,255,255,0.5)'}}>{mult}</strong></span>
+                            <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.78rem'}}>Баланс: <strong style={{color:!isInfinite&&chkCoins<bet?'#ef4444':'rgba(255,255,255,0.7)'}}>{isInfinite?'∞':chkCoins}</strong></span>
                         </div>
                     </div>
 
-                    {/* Кнопка крутить */}
-                    <button onClick={spin} disabled={spinning || chkCoins < bet} style={{
-                        width:'100%',padding:'18px',borderRadius:'16px',border:'none',cursor:spinning||chkCoins<bet?'not-allowed':'pointer',
-                        background: spinning||chkCoins<bet ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg,#7c3aed,#ec4899)',
-                        color:'white',fontWeight:700,fontSize:'1.1rem',
-                        boxShadow: spinning||chkCoins<bet ? 'none' : '0 4px 24px rgba(124,58,237,0.5)',
-                        transition:'all 0.2s',marginBottom:'16px',
-                        opacity: spinning||chkCoins<bet ? 0.5 : 1
+                    {/* ── Кнопка SPIN ── */}
+                    <button onClick={handleSpin} disabled={!canSpin} style={{
+                        width:'100%',padding:'17px',borderRadius:'14px',border:'none',
+                        cursor:canSpin?'pointer':'not-allowed',fontWeight:800,fontSize:'1.1rem',
+                        background:canSpin?'linear-gradient(135deg,#5b21b6,#7c3aed,#a855f7)':'rgba(255,255,255,0.08)',
+                        color:canSpin?'white':'rgba(255,255,255,0.3)',
+                        boxShadow:canSpin?'0 4px 24px rgba(124,58,237,0.5),0 0 40px rgba(124,58,237,0.1)':'none',
+                        transition:'all 0.2s',letterSpacing:'0.05em',marginBottom:'10px'
                     }}>
-                        {spinning ? '🎰 Крутим...' : chkCoins < bet ? '❌ Недостаточно CHK' : '🎰 КРУТИТЬ'}
+                        {spinning?'⚗️ КРУТИМ...':isFsPhase?`🎰 ФРИСПИН (${freeSpinsLeft})`:'💎 КРУТИТЬ'}
                     </button>
 
-                    {/* Таблица выплат */}
-                    <div style={{background:'rgba(255,255,255,0.04)',borderRadius:'16px',padding:'14px',border:'1px solid rgba(255,255,255,0.06)'}}>
-                        <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.75rem',marginBottom:'10px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Таблица выплат · центральная линия</p>
-                        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-                            {SYMBOLS.slice().sort((a,b)=>b.mult-a.mult).map(s=>(
-                                <div key={s.id} style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                                    <div style={{display:'flex',gap:'3px'}}>
-                                        {[0,1,2].map(i=>(
-                                            <div key={i} style={{width:'22px',height:'22px',borderRadius:'6px',background:s.color,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                                                <span style={{fontSize:'9px',color:'white',fontWeight:900}}>{s.label}</span>
-                                            </div>
-                                        ))}
+                    {/* ── Bonus Buy ── */}
+                    {phase==='base' && !spinning && (
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'12px'}}>
+                            <button onClick={()=>buyBonus('random')} disabled={!isInfinite&&chkCoins<bet*80} style={{padding:'10px',borderRadius:'10px',border:'1px solid rgba(154,230,180,0.3)',background:'rgba(154,230,180,0.07)',color:'#9ae6b4',fontSize:'0.78rem',fontWeight:600,cursor:'pointer',opacity:!isInfinite&&chkCoins<bet*80?0.4:1}}>
+                                🔑 Купить бонус<br/><span style={{fontSize:'0.7rem',opacity:0.7}}>{bet*80} CHK</span>
+                            </button>
+                            <button onClick={()=>buyBonus('red')} disabled={!isInfinite&&chkCoins<bet*350} style={{padding:'10px',borderRadius:'10px',border:'1px solid rgba(239,68,68,0.3)',background:'rgba(239,68,68,0.07)',color:'#fc8181',fontSize:'0.78rem',fontWeight:600,cursor:'pointer',opacity:!isInfinite&&chkCoins<bet*350?0.4:1}}>
+                                🔴 Красный Портал<br/><span style={{fontSize:'0.7rem',opacity:0.7}}>{bet*350} CHK</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ── Таблица выплат ── */}
+                    <details style={{marginBottom:'8px'}}>
+                        <summary style={{color:'rgba(255,255,255,0.4)',fontSize:'0.78rem',cursor:'pointer',padding:'8px 0',listStyle:'none',textAlign:'center'}}>📊 Таблица выплат ▾</summary>
+                        <div style={{background:'rgba(0,0,0,0.4)',borderRadius:'12px',padding:'12px',border:'1px solid rgba(255,255,255,0.06)',marginTop:'6px'}}>
+                            {Object.values(SYMS).filter(s=>s.pay&&s.pay.length).sort((a,b)=>b.pay[b.pay.length-1]-a.pay[a.pay.length-1]).map(s=>(
+                                <div key={s.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                                        <div style={{width:'20px',height:'20px',borderRadius:'4px',background:s.color,border:`1px solid ${s.glow}`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                            <span style={{fontSize:'8px',color:s.glow,fontWeight:900}}>{s.label.slice(0,2)}</span>
+                                        </div>
+                                        <span style={{color:'rgba(255,255,255,0.6)',fontSize:'0.78rem'}}>{s.label}</span>
                                     </div>
-                                    <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.8rem',flex:1}}>3 в ряд</span>
-                                    <span style={{color:'#fbbf24',fontWeight:700,fontSize:'0.85rem'}}>×{s.mult}</span>
+                                    <span style={{color:s.glow,fontSize:'0.78rem',fontWeight:600}}>×{s.pay.filter(Boolean)[s.pay.filter(Boolean).length-1]} / 6</span>
                                 </div>
                             ))}
-                            <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:'6px',marginTop:'2px',display:'flex',justifyContent:'space-between'}}>
-                                <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.75rem'}}>Все 9 одинаковых</span>
-                                <span style={{color:'#ec4899',fontWeight:700,fontSize:'0.85rem'}}>ДЖЕКПОТ ×3</span>
-                            </div>
+                            <p style={{color:'rgba(255,255,255,0.3)',fontSize:'0.7rem',marginTop:'8px',textAlign:'center'}}>Scatter Pays · RTP 96.4% · Макс ×10,000</p>
                         </div>
-                    </div>
+                    </details>
 
-                    {/* Мини статистика */}
-                    {spinCount > 0 && (
-                        <div style={{display:'flex',gap:'8px',marginTop:'12px'}}>
-                            <div style={{flex:1,background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                                <p style={{color:'#10b981',fontWeight:700,fontSize:'0.9rem'}}>+{totalWon}</p>
-                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>Выиграно</p>
-                            </div>
-                            <div style={{flex:1,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                                <p style={{color:'#ef4444',fontWeight:700,fontSize:'0.9rem'}}>-{totalLost}</p>
-                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>Потрачено</p>
-                            </div>
-                            <div style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                                <p style={{color:'white',fontWeight:700,fontSize:'0.9rem'}}>{spinCount}</p>
-                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>Спинов</p>
-                            </div>
+                    {/* ── Статистика ── */}
+                    {stats.spins>0&&(
+                        <div style={{display:'flex',gap:'6px'}}>
+                            {[{l:'Спинов',v:stats.spins,c:'rgba(255,255,255,0.7)'},{l:'Выиграно',v:'+'+stats.won,c:'#68d391'},{l:'Потрачено',v:'-'+stats.lost,c:'#fc8181'}].map(s=>(
+                                <div key={s.l} style={{flex:1,background:'rgba(0,0,0,0.4)',borderRadius:'10px',padding:'8px',textAlign:'center',border:'1px solid rgba(255,255,255,0.05)'}}>
+                                    <p style={{color:s.c,fontWeight:700,fontSize:'0.85rem',margin:0}}>{s.v}</p>
+                                    <p style={{color:'rgba(255,255,255,0.3)',fontSize:'0.65rem',margin:0}}>{s.l}</p>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -2088,29 +2521,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             if (db && tgId) db.collection('users').doc(tgId.toString()).set({ chkDiscounts: cd, promoCodes: pc }, { merge: true }).catch(()=>{});
         };
 
-        if(activeTab==='casino') {
-            // Символы слотов — SVG картинки вместо эмодзи
-            const SYMBOLS = [
-                { id:'seven',  label:'7',       mult:10, color:'#ef4444', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#ef4444"/><text x="30" y="44" textAnchor="middle" fontSize="38" fontWeight="900" fill="white" fontFamily="Arial">7</text></svg> },
-                { id:'bar',    label:'BAR',     mult:5,  color:'#1d4ed8', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#1d4ed8"/><text x="30" y="40" textAnchor="middle" fontSize="20" fontWeight="900" fill="white" fontFamily="Arial">BAR</text></svg> },
-                { id:'bell',   label:'BELL',    mult:4,  color:'#f59e0b', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#f59e0b"/><ellipse cx="30" cy="28" rx="16" ry="14" fill="white"/><rect x="20" y="40" width="20" height="5" rx="2" fill="white"/><circle cx="30" cy="46" r="3" fill="white"/><rect x="28" y="12" width="4" height="6" rx="2" fill="white"/></svg> },
-                { id:'crown',  label:'CROWN',   mult:6,  color:'#8b5cf6', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#8b5cf6"/><polygon points="10,45 10,25 20,35 30,15 40,35 50,25 50,45" fill="gold"/><rect x="8" y="43" width="44" height="6" rx="3" fill="gold"/></svg> },
-                { id:'diamond',label:'♦',       mult:8,  color:'#06b6d4', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#06b6d4"/><polygon points="30,8 50,28 30,52 10,28" fill="white" stroke="rgba(255,255,255,0.3)" strokeWidth="2"/><polygon points="30,16 44,28 30,44 16,28" fill="#bfefff"/></svg> },
-                { id:'horse',  label:'CHK',     mult:3,  color:'#10b981', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#10b981"/><text x="30" y="36" textAnchor="middle" fontSize="13" fontWeight="800" fill="white" fontFamily="Arial">CHK</text><circle cx="30" cy="22" r="10" fill="rgba(255,255,255,0.2)" stroke="white" strokeWidth="2"/></svg> },
-                { id:'star',   label:'★',       mult:2,  color:'#ec4899', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#ec4899"/><polygon points="30,10 35,24 50,24 38,33 43,48 30,39 17,48 22,33 10,24 25,24" fill="white"/></svg> },
-            ];
-            // Вероятности (чем реже, тем больше мультипликатор)
-            const REEL_POOL = [
-                ...Array(8).fill('star'),
-                ...Array(7).fill('horse'),
-                ...Array(6).fill('bell'),
-                ...Array(5).fill('bar'),
-                ...Array(4).fill('crown'),
-                ...Array(3).fill('diamond'),
-                ...Array(2).fill('seven'),
-            ];
-            return <CasinoSlots chkCoins={chkCoins} setChkCoins={setChkCoins} onBack={()=>setActiveTab('main')} SYMBOLS={SYMBOLS} REEL_POOL={REEL_POOL} />;
-        }
+        if(activeTab==='casino') return <VoidCrystalsCasino chkCoins={chkCoins} setChkCoins={setChkCoins} onBack={()=>setActiveTab('main')} isInfinite={isAdminUser} />;
 
         if(activeTab==='blackjack') return (
             <div className="p-4">
@@ -2182,7 +2593,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     </div>
                     <div className="grid gap-3" style={{gridTemplateColumns:'1fr 1fr'}}>
                         <button onClick={()=>setActiveTab('blackjack')} className="app-card rounded-xl p-4 hover:bg-gray-50 transition-colors text-left border app-border"><h3 className="app-text mb-1">🃏 Блэкджек</h3><p className="app-text-secondary text-sm">Ставка 10–10000</p></button>
-                        <button onClick={()=>setActiveTab('casino')} className="rounded-xl p-4 text-left transition-colors" style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',color:'white'}}><h3 className="mb-1" style={{fontWeight:600,fontSize:'1rem'}}>🎰 Казино</h3><p style={{fontSize:'0.8rem',opacity:0.85}}>Слоты · CHKCoins</p></button>
+                        <button onClick={()=>setActiveTab('casino')} className="rounded-xl p-4 text-left transition-colors" style={{background:'linear-gradient(135deg,#1a0533 0%,#2d1b69 50%,#0f1744 100%)',color:'white',border:'1px solid rgba(139,92,246,0.4)',boxShadow:'0 0 20px rgba(139,92,246,0.2)'}}><h3 className="mb-1" style={{fontWeight:700,fontSize:'1rem'}}>💎 Войд</h3><p style={{fontSize:'0.78rem',opacity:0.75}}>Кристаллы Бездны</p></button>
                     </div>
                     <div className="app-card rounded-xl p-4">
                         <h3 className="app-text mb-3">💰 Конвертер скидок</h3>
@@ -2217,7 +2628,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             {icon:GiftIcon,label:'Бонусы',onClick:()=>setActiveScreen('bonuses')},
             {icon:MarketplaceNavIcon,label:'Маркетплейсы',onClick:()=>setActiveScreen('marketplaces')},
             {icon:ShareIcon,label:'Реферальная программа',onClick:()=>setActiveScreen('referral')},
-            {icon:ReviewStarIcon,label:'Отзывы покупателей',onClick:()=>setActiveScreen('reviews')},
+            {icon:MessageCircleIcon,label:'Отзывы покупателей',onClick:()=>setActiveScreen('reviews')},
             {icon:SettingsIcon,label:'Настройки',onClick:()=>setActiveScreen('settings')},
             {icon:MessageCircleIcon,label:'Поддержка',onClick:()=>setActiveScreen('support')},
         ];
@@ -2313,19 +2724,6 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
         }
 const tgUser = tg?.initDataUnsafe?.user;
 const startParam = tg?.initDataUnsafe?.start_param;
-
-// Fix 3: Telegram BackButton — показываем "Назад" вместо "Закрыть" когда не на главной
-useEffect(() => {
-    if (!tg?.BackButton) return;
-    if (activeScreen !== 'home') {
-        tg.BackButton.show();
-        const handler = () => setActiveScreen('home');
-        tg.BackButton.onClick(handler);
-        return () => { tg.BackButton.offClick(handler); tg.BackButton.hide(); };
-    } else {
-        tg.BackButton.hide();
-    }
-}, [activeScreen]);
 useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
