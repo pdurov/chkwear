@@ -96,6 +96,9 @@
         input:focus,select:focus,textarea:focus{outline:2px solid #3b82f6;outline-offset:2px}
         .scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
         .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:40;padding-bottom:env(safe-area-inset-bottom,0px)}
+        /* На мобиле/планшете все кнопки назад/закрыть скрыты — используется TG BackButton */
+        .nav-back{display:inline-flex;align-items:center}
+        @media(max-width:1023px){.nav-back{display:none!important}}
         .modal-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto}
         .modal-content{background-color:white;width:100%;max-width:42rem;border-radius:1rem;margin:auto;max-height:95vh;overflow-y:auto}
         .categories-scroll{display:flex;gap:.75rem;overflow-x:auto;padding-bottom:.5rem;scroll-snap-type:x mandatory}
@@ -199,6 +202,13 @@
 <script type="text/babel">
     const { useState, useEffect, useRef, useMemo } = React;
 
+    // IS_MOBILE: true если Telegram или мобильное устройство
+    const IS_MOBILE = !!(
+        window.Telegram?.WebApp?.initDataUnsafe?.user ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+        window.innerWidth < 1024
+    );
+
     const initialProducts = [];
     const CATEGORIES = [
         { id:'all', name:'All' }, { id:'sneakers', name:'Sneakers' }, { id:'tshirt', name:'T-Shirt' },
@@ -297,21 +307,29 @@
         useEffect(() => {
             if (!query || query.length < 3) { setSuggestions([]); return; }
             setLoading(true);
-            const timer = setTimeout(() => {
-                const mock = ['ул. Ленина', 'пр. Независимости', 'ул. Пушкинская', 'ул. Октябрьская', 'ул. Советская'];
-                setSuggestions(mock.filter(a => a.toLowerCase().includes(query.toLowerCase())).map((a,i) => `${a}, д. ${i+1}`));
+            const timer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=ru&limit=5&addressdetails=1`);
+                    const data = await res.json();
+                    const addrs = data.map(item => {
+                        const a = item.address || {};
+                        const parts = [a.road, a.house_number, a.city||a.town||a.village, a.country].filter(Boolean);
+                        return parts.length >= 2 ? parts.join(', ') : item.display_name;
+                    }).filter((v,i,arr) => arr.indexOf(v)===i); // dedupe
+                    setSuggestions(addrs);
+                } catch(e) { setSuggestions([]); }
                 setLoading(false);
-            }, 300);
+            }, 500);
             return () => clearTimeout(timer);
         }, [query]);
         if (!query || query.length < 3) return null;
         return (
             <div className="address-suggestions app-card shadow-lg">
                 {loading
-                    ? <div className="p-4 flex justify-center"><div className="loading-spinner"></div></div>
+                    ? <div className="p-4 flex justify-center"><div style={{width:'20px',height:'20px',border:'2px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}></div></div>
                     : suggestions.length > 0
                         ? suggestions.map((addr, i) => <div key={i} className="address-suggestion-item app-text" onClick={() => { onSelect(addr); onClose(); }}>{addr}</div>)
-                        : <div className="p-4 app-text-secondary text-center">Адреса не найдены</div>
+                        : <div className="p-4 app-text-secondary text-center text-sm">Ничего не найдено</div>
                 }
             </div>
         );
@@ -686,10 +704,18 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // PRODUCT DETAIL
-    function ProductDetail({ product, onClose, onAddToFavorites, onAddToCart }) {
+    function ProductDetail({ product, onClose, onAddToFavorites, onAddToCart, registerBack }) {
     const [marketplace, setMarketplace] = useState('poizon');
     const [currentImg, setCurrentImg] = useState(0);
     const [lightbox, setLightbox] = useState(false);
+        // BackButton для lightbox — возвращает на карточку товара
+        useEffect(() => {
+            if (lightbox && registerBack) return registerBack(() => setLightbox(false));
+        }, [lightbox]);
+        // BackButton для самой карточки
+        useEffect(() => {
+            if (registerBack) return registerBack(onClose);
+        }, []);
     const touchStartX = useRef(null);
     const images = product.images?.length > 0 ? product.images : [product.imageUrl];
 
@@ -729,7 +755,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="modal-overlay" onClick={onClose}>
                 <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem'}}>
-                        <button onClick={onClose} className="app-text hover:text-blue-600 flex items-center gap-1 text-sm font-medium">← Назад</button>
+                        <button onClick={onClose} className="nav-back app-text hover:text-blue-600 flex items-center gap-1 text-sm font-medium">← Назад</button>
                         <h2 className="app-text" style={{fontSize:'1rem',textAlign:'center',flex:1,margin:'0 8px'}}>{product.name}</h2>
                         <div style={{width:'60px'}}/>
                     </div>
@@ -791,7 +817,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
             {lightbox && (
                 <div onClick={()=>setLightbox(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    <button onClick={()=>setLightbox(false)} style={{position:'absolute',top:'16px',right:'16px',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'40px',height:'40px',color:'white',fontSize:'20px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    <button onClick={()=>setLightbox(false)} className="nav-back" style={{position:'absolute',top:'16px',right:'16px',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'40px',height:'40px',color:'white',fontSize:'20px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                     {images.length>1&&<button onClick={e=>{e.stopPropagation();setCurrentImg(p=>p>0?p-1:p)}} style={{position:'absolute',left:'16px',top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'44px',height:'44px',color:'white',fontSize:'24px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
                     <img src={images[currentImg]} onClick={e=>e.stopPropagation()} style={{maxWidth:'95vw',maxHeight:'90vh',objectFit:'contain',borderRadius:'8px'}} />
                     {images.length>1&&<button onClick={e=>{e.stopPropagation();setCurrentImg(p=>p<images.length-1?p+1:p)}} style={{position:'absolute',right:'16px',top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'44px',height:'44px',color:'white',fontSize:'24px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>}
@@ -932,7 +958,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="modal-overlay checkout-modal" onClick={step==='success'?handleFinalClose:onClose}>
                 <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem',backgroundColor:theme==='dark'?'#13243a':'white'}}>
-                        <button onClick={step==='success'?handleFinalClose:onClose} className="app-text hover:text-blue-600 flex items-center gap-1 text-sm font-medium">← Назад</button>
+                        <button onClick={step==='success'?handleFinalClose:onClose} className="nav-back app-text hover:text-blue-600 flex items-center gap-1 text-sm font-medium">← Назад</button>
                         <h2 className="app-text" style={{fontSize:'1rem',textAlign:'center',flex:1,margin:'0 8px'}}>{step==='delivery'?'Данные доставки':step==='payment'?'Подтверждение':'Заказ оформлен'}</h2>
                         <div style={{width:'60px'}}/>
                     </div>
@@ -961,13 +987,13 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                     <div><label className="block app-text mb-2">Телефон</label><input value={formData.europostPhone||''} onChange={e=>setFormData({...formData,europostPhone:e.target.value})} className={`app-card app-text ${errors.europostPhone?'border-red-500':'app-border'}`} placeholder="+375 29 123-45-67" />{errors.europostPhone&&<p className="text-red-500 text-sm mt-1">{errors.europostPhone}</p>}</div>
                                 </>)}
                                 {formData.deliveryMethod==='belpost' && (<>
-                                    <div className="relative"><label className="block app-text mb-2">Адрес</label><input value={formData.belpostAddress||''} onChange={e=>{setFormData({...formData,belpostAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),200)} className={`app-card app-text ${errors.belpostAddress?'border-red-500':'app-border'}`} placeholder="г. Минск, ул. Ленина, д. 1" />{showAddressSuggestions&&<AddressSuggestions query={formData.belpostAddress} onSelect={a=>setFormData({...formData,belpostAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}{errors.belpostAddress&&<p className="text-red-500 text-sm mt-1">{errors.belpostAddress}</p>}</div>
+                                    <div className="relative"><label className="block app-text mb-2">Адрес</label><input value={formData.belpostAddress||''} onChange={e=>{setFormData({...formData,belpostAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),300)} autoComplete="off" className={`app-card app-text ${errors.belpostAddress?'border-red-500':'app-border'}`} placeholder="г. Минск, ул. Ленина, д. 1" />{showAddressSuggestions&&<AddressSuggestions query={formData.belpostAddress} onSelect={a=>setFormData({...formData,belpostAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}{errors.belpostAddress&&<p className="text-red-500 text-sm mt-1">{errors.belpostAddress}</p>}</div>
                                     <div><label className="block app-text mb-2">ФИО</label><input value={formData.belpostName||''} onChange={e=>setFormData({...formData,belpostName:e.target.value})} className={`app-card app-text ${errors.belpostName?'border-red-500':'app-border'}`} placeholder="Иванов Иван Иванович" />{errors.belpostName&&<p className="text-red-500 text-sm mt-1">{errors.belpostName}</p>}</div>
                                     <div><label className="block app-text mb-2">Индекс</label><input value={formData.belpostIndex||''} onChange={e=>setFormData({...formData,belpostIndex:e.target.value})} className={`app-card app-text ${errors.belpostIndex?'border-red-500':'app-border'}`} placeholder="220000" maxLength="6" />{errors.belpostIndex&&<p className="text-red-500 text-sm mt-1">{errors.belpostIndex}</p>}</div>
                                     <div><label className="block app-text mb-2">Телефон</label><input value={formData.belpostPhone||''} onChange={e=>setFormData({...formData,belpostPhone:e.target.value})} className={`app-card app-text ${errors.belpostPhone?'border-red-500':'app-border'}`} placeholder="+375 29 123-45-67" />{errors.belpostPhone&&<p className="text-red-500 text-sm mt-1">{errors.belpostPhone}</p>}</div>
                                 </>)}
                                 {formData.deliveryMethod==='sdek' && (<>
-                                    <div className="relative"><label className="block app-text mb-2">Адрес отделения</label><input value={formData.sdekAddress||''} onChange={e=>{setFormData({...formData,sdekAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),200)} className={`app-card app-text ${errors.sdekAddress?'border-red-500':'app-border'}`} placeholder="г. Минск, ул. Ленина, д. 1" />{showAddressSuggestions&&<AddressSuggestions query={formData.sdekAddress} onSelect={a=>setFormData({...formData,sdekAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}{errors.sdekAddress&&<p className="text-red-500 text-sm mt-1">{errors.sdekAddress}</p>}</div>
+                                    <div className="relative"><label className="block app-text mb-2">Адрес отделения</label><input value={formData.sdekAddress||''} onChange={e=>{setFormData({...formData,sdekAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),300)} autoComplete="off" className={`app-card app-text ${errors.sdekAddress?'border-red-500':'app-border'}`} placeholder="г. Минск, ул. Ленина, д. 1" />{showAddressSuggestions&&<AddressSuggestions query={formData.sdekAddress} onSelect={a=>setFormData({...formData,sdekAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}{errors.sdekAddress&&<p className="text-red-500 text-sm mt-1">{errors.sdekAddress}</p>}</div>
                                     <div><label className="block app-text mb-2">ФИО</label><input value={formData.sdekName||''} onChange={e=>setFormData({...formData,sdekName:e.target.value})} className={`app-card app-text ${errors.sdekName?'border-red-500':'app-border'}`} placeholder="Иванов Иван Иванович" />{errors.sdekName&&<p className="text-red-500 text-sm mt-1">{errors.sdekName}</p>}</div>
                                     <div><label className="block app-text mb-2">Телефон</label><input value={formData.sdekPhone||''} onChange={e=>setFormData({...formData,sdekPhone:e.target.value})} className={`app-card app-text ${errors.sdekPhone?'border-red-500':'app-border'}`} placeholder="+375 29 123-45-67" />{errors.sdekPhone&&<p className="text-red-500 text-sm mt-1">{errors.sdekPhone}</p>}</div>
                                 </>)}
@@ -988,12 +1014,16 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                         <div className="space-y-3">
                                             <div className="relative">
                                                 <label className="block app-text mb-2">Адрес доставки</label>
-                                                <input value={formData.deliveryAddress||''} onChange={e=>{setFormData({...formData,deliveryAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),200)} className={`app-card app-text ${errors.deliveryAddress?'border-red-500':'app-border'}`} placeholder="Введите адрес" />
+                                                <input value={formData.deliveryAddress||''} onChange={e=>{setFormData({...formData,deliveryAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),300)} autoComplete="off" className={`app-card app-text ${errors.deliveryAddress?'border-red-500':'app-border'}`} placeholder="Введите адрес" />
                                                 {showAddressSuggestions&&<AddressSuggestions query={formData.deliveryAddress} onSelect={a=>setFormData({...formData,deliveryAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru`);const d=await r.json();setFormData({...formData,deliveryAddress:d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();
+                                                const a=d.address||{};
+                                                const parts=[a.road,a.house_number,a.city||a.town||a.village,a.state].filter(Boolean);
+                                                const addr=parts.length>=2?parts.join(', '):(d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`);
+                                                setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
@@ -1106,7 +1136,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="app-text">Фильтры</h2>
-                            <button onClick={()=>setIsFilterOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                            <button onClick={()=>setIsFilterOpen(false)} className="nav-back p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                         </div>
                         <div className="mb-4">
                             <p className="app-text mb-3">Состояние:</p>
@@ -1171,7 +1201,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         </div>
                     )}
                 </div>
-                {selectedProduct && <ProductDetail product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToFavorites={id=>{const p=products.find(x=>x.id===id);if(p){addToFavorites(p);setToast('Добавлено в избранное')}}} onAddToCart={(id,mp,fp)=>{const p=products.find(x=>x.id===id);if(p){addToCart(p,mp,fp);setToast('Добавлено в корзину')}}} />}
+                {selectedProduct && <ProductDetail product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToFavorites={id=>{const p=products.find(x=>x.id===id);if(p){addToFavorites(p);setToast('Добавлено в избранное')}}} onAddToCart={(id,mp,fp)=>{const p=products.find(x=>x.id===id);if(p){addToCart(p,mp,fp);setToast('Добавлено в корзину')}}} registerBack={registerBack} />}
                 {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
                 {isAdmin&&<div className="admin-panel"><button onClick={onOpenAdminPanel} className="admin-btn"><AdminIcon /></button></div>}
             </div>
@@ -1223,7 +1253,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         })}
                     </div>
                 )}
-                {selectedProduct&&<ProductDetail product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToFavorites={()=>{}} onAddToCart={(id,mp,fp)=>{const p=favorites.find(x=>x.id===id);if(p){addToCart(getProduct(p),mp,fp);setToast('Добавлено в корзину')}}} />}
+                {selectedProduct&&<ProductDetail product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToFavorites={()=>{}} onAddToCart={(id,mp,fp)=>{const p=favorites.find(x=>x.id===id);if(p){addToCart(getProduct(p),mp,fp);setToast('Добавлено в корзину')}}} registerBack={registerBack} />}
                 {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
             </div>
         );
@@ -1233,6 +1263,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     function Cart({ cart, removeFromCart, createOrder, theme, referralCode, products, registerBack }) {
         const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
         const [toast, setToast] = useState(null);
+        useEffect(() => {
+            if (isCheckoutOpen && registerBack) return registerBack(() => setIsCheckoutOpen(false));
+        }, [isCheckoutOpen]);
         useEffect(() => {
             if (isCheckoutOpen && registerBack) return registerBack(() => setIsCheckoutOpen(false));
         }, [isCheckoutOpen]);
@@ -1306,6 +1339,15 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             if (selected && registerBack) return registerBack(() => setSelected(null));
         }, [selected]);
         const safeOrders = (orders||[]).filter(o => o && o.id);
+        useEffect(() => {
+            if (selected && registerBack) return registerBack(() => setSelected(null));
+        }, [selected]);
+        useEffect(() => {
+            if (reviewOrder && registerBack) return registerBack(() => { setReviewOrder(null); setReviewSent(false); setReviewText(''); setReviewRating(5); });
+        }, [reviewOrder]);
+        useEffect(() => {
+            if (lightboxImgs && registerBack) return registerBack(() => setLightboxImgs(null));
+        }, [lightboxImgs]);
         const getStatus = s=>({
             pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},
             confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},
@@ -1343,7 +1385,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         if (reviewOrder) return (
             <div className="p-4">
-                <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setReviewText('');setReviewRating(5);if(reviewSent)setSelected(s=>s?{...s,reviewLeft:true}:s);}} className="mb-6 app-text hover:text-blue-600">← Назад</button>
+                <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setReviewText('');setReviewRating(5);if(reviewSent)setSelected(s=>s?{...s,reviewLeft:true}:s);}} className="nav-back mb-6 app-text hover:text-blue-600">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Оставить отзыв</h1><p className="app-text-secondary text-sm mt-1">{reviewOrder.displayId||reviewOrder.id}</p></div>
                 {reviewSent ? (
                     <div className="text-center py-10">
@@ -1393,7 +1435,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
 
         if (lightboxImgs) return (
-            <div onClick={()=>setLightboxImgs(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
+            <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
                 <img src={lightboxImgs[lightboxIdx]} onClick={e=>e.stopPropagation()} style={{maxWidth:'95vw',maxHeight:'80vh',objectFit:'contain',borderRadius:'8px'}} />
                 {lightboxImgs.length>1&&<div style={{display:'flex',gap:'8px'}}>{lightboxImgs.map((_,i)=><button key={i} onClick={e=>{e.stopPropagation();setLightboxIdx(i)}} style={{width:i===lightboxIdx?'24px':'8px',height:'8px',borderRadius:'4px',background:i===lightboxIdx?'#3b82f6':'rgba(255,255,255,0.5)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}} />)}</div>}
                 <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem'}}>Нажмите для закрытия</p>
@@ -1402,7 +1444,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         if (selected) return (
             <div className="p-4">
-                <button onClick={()=>setSelected(null)} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад к заказам</button>
+                <button onClick={()=>setSelected(null)} className="nav-back mb-6 app-text hover:text-blue-600 transition-colors">← Назад к заказам</button>
                 <div className="mb-6"><h1 className="app-text mb-2">{selected.displayId || selected.id}</h1><p className="app-text-secondary">{selected.date}</p></div>
                 <div className="app-card rounded-xl p-4 mb-4">
                     <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Статус:</span><span className="px-3 py-1 rounded-full text-sm font-medium" style={getStatus(selected.status).style}>{getStatus(selected.status).label}</span></div>
@@ -1429,7 +1471,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
         return (
             <div className="p-4">
-                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <button onClick={onBack} className="nav-back mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Мои заказы</h1></div>
                 {safeOrders.length===0 ? (
                    <div className="flex flex-col items-center justify-center py-20"><div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><PackageIcon /></div><p className="app-text-secondary">Нет заказов</p></div>
@@ -1450,7 +1492,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     function Settings({ theme, setTheme, onBack }) {
         return (
             <div className="p-4">
-                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <button onClick={onBack} className="nav-back mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Настройки</h1></div>
                 <div className="app-card rounded-xl p-4">
                     <h2 className="app-text mb-4">Тема</h2>
@@ -1470,7 +1512,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     function Support({ onBack }) {
         return (
             <div className="p-4">
-                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <button onClick={onBack} className="nav-back mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
                 <div className="mb-6"><h1 className="app-text">Поддержка</h1></div>
                 <div className="app-card rounded-xl p-6 text-center mb-4">
                     <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><MessageCircleIcon /></div>
@@ -1507,7 +1549,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
     return (
         <div className="p-4">
-            <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+            <button onClick={onBack} className="nav-back mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
             <div className="mb-6"><h1 className="app-text mb-2">Реферальная программа</h1><p className="app-text-secondary text-sm">Приглашай друзей и получай 1000 CHK за каждого!</p></div>
             
             <div className="app-card rounded-xl p-6 mb-4">
@@ -1551,7 +1593,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         ];
         return (
             <div className="p-4">
-                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text text-xl font-bold">Маркетплейсы</h1></div>
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="nav-back p-2 app-text hover:text-blue-600">←</button><h1 className="app-text text-xl font-bold">Маркетплейсы</h1></div>
                 <div className="space-y-3">
                     {items.map(({name,desc,url,icon,accent})=>(
                         <div key={name} className="marketplace-card p-5">
@@ -1580,7 +1622,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         }, []);
         return (
             <div className="p-4">
-                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">Бонусы</h1></div>
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="nav-back p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">Бонусы</h1></div>
                 <div className="app-card rounded-xl shadow-sm overflow-hidden">
                     {bonuses.length===0
                         ? <div className="p-8 text-center"><p className="app-text-secondary">Нет бонусов</p></div>
@@ -1633,7 +1675,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         return (
             <div className="p-4">
-                <button onClick={onBack} className="mb-4 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <button onClick={onBack} className="nav-back mb-4 app-text hover:text-blue-600 transition-colors">← Назад</button>
 
                 {/* Hero-блок с рейтингом */}
                 <div className="app-card rounded-2xl border app-border mb-4 overflow-hidden">
@@ -1937,7 +1979,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
 
         return (
             <div className="p-4">
-                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">CHKGame</h1></div>
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="nav-back p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">CHKGame</h1></div>
                 <div className="app-card rounded-xl p-6 mb-4"><h2 className="app-text mb-2">Баланс</h2><p className="text-blue-600" style={{fontSize:'2.5rem',fontWeight:'bold'}}>{chkCoins}</p><p className="app-text-secondary text-sm">CHKCoins</p></div>
                 <div className="space-y-3 mb-6">
                     <div className="app-card rounded-xl p-4">
@@ -2074,12 +2116,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     // APP
     function App() {
         const [activeScreen, setActiveScreen] = useState('home');
-        // Стек для BackButton — каждый уровень вложенности добавляется сюда
-        const backStack = useRef([]); // массив функций "что делать при нажатии назад"
-
-        // Регистрируем обработчик назад
-        const pushBack = (fn) => { backStack.current = [...backStack.current, fn]; };
-        const popBack  = ()   => { backStack.current = backStack.current.slice(0, -1); };
+        // Стек для BackButton
+        const backStack = useRef([]);
 
         const [favorites, setFavorites] = useState([]);
 const [cart, setCart] = useState([]);
@@ -2107,7 +2145,6 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
             return code;
         });
         const [referralStats] = useState({ referralsCount:0, cashback:0 });
-        // profileResetKey — триггер сброса подэкрана Profile
         const [profileResetKey, setProfileResetKey] = useState(0);
 
         const tg = window.Telegram?.WebApp;
