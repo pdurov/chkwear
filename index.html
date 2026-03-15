@@ -729,8 +729,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="modal-overlay" onClick={onClose}>
                 <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem'}}>
-                        <h2 className="app-text">{product.name}</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                        <button onClick={onClose} className="app-text hover:text-blue-600 flex items-center gap-1 text-sm font-medium">← Назад</button>
+                        <h2 className="app-text" style={{fontSize:'1rem',textAlign:'center',flex:1,margin:'0 8px'}}>{product.name}</h2>
+                        <div style={{width:'60px'}}/>
                     </div>
 
                     <div className="relative" style={{userSelect:'none',overflow:'hidden'}}>
@@ -931,8 +932,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <div className="modal-overlay checkout-modal" onClick={step==='success'?handleFinalClose:onClose}>
                 <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem',backgroundColor:theme==='dark'?'#13243a':'white'}}>
-                        <h2 className="app-text">{step==='delivery'?'Данные доставки':step==='payment'?'Продолжить':'Заказ оформлен'}</h2>
-                        <button onClick={step==='success'?handleFinalClose:onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                        <button onClick={step==='success'?handleFinalClose:onClose} className="app-text hover:text-blue-600 flex items-center gap-1 text-sm font-medium">← Назад</button>
+                        <h2 className="app-text" style={{fontSize:'1rem',textAlign:'center',flex:1,margin:'0 8px'}}>{step==='delivery'?'Данные доставки':step==='payment'?'Подтверждение':'Заказ оформлен'}</h2>
+                        <div style={{width:'60px'}}/>
                     </div>
                     <div className="p-6">
                         {step==='delivery' && (
@@ -1053,7 +1055,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 <h2 className="app-text" style={{fontSize:'1.5rem'}}>Заказ оформлен!</h2>
                                 <p className="app-text-secondary">Мы свяжемся с вами для подтверждения.</p>
                                 <div className="bg-blue-50 rounded-xl p-4"><p className="app-text-secondary text-sm">По вопросам: <button onClick={()=>{const tg=window.Telegram?.WebApp;const url='https://t.me/kanefix';try{if(tg?.openTelegramLink){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} style={{color:'#3b82f6',textDecoration:'underline',background:'none',border:'none',cursor:'pointer',font:'inherit',padding:0}}>@kanefix</button></p></div>
-                                <button onClick={handleFinalClose} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700">Закрыть</button>
+                                <button onClick={handleFinalClose} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700">Готово</button>
                             </div>
                         )}
                     </div>
@@ -1063,7 +1065,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 // HOME
-    function Home({ addToFavorites, addToCart, theme, setTheme, products, isAdmin, onOpenAdminPanel }) {
+    function Home({ addToFavorites, addToCart, theme, setTheme, products, isAdmin, onOpenAdminPanel, registerBack }) {
         const [selectedCategory, setSelectedCategory] = useState('all');
         const [conditionFilter, setConditionFilter] = useState('all');
         const [searchQuery, setSearchQuery] = useState('');
@@ -1073,6 +1075,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [isFilterOpen, setIsFilterOpen] = useState(false);
         const scrollRef = useRef(null);
         const searchInputRef = useRef(null);
+
+        // Регистрируем BackButton для карточки товара и фильтра
+        useEffect(() => {
+            if (selectedProduct && registerBack) return registerBack(() => setSelectedProduct(null));
+        }, [selectedProduct]);
+        useEffect(() => {
+            if (isFilterOpen && registerBack) return registerBack(() => setIsFilterOpen(false));
+        }, [isFilterOpen]);
 
         const handleCategoryClick = (id, i) => {
             setSelectedCategory(id);
@@ -1169,9 +1179,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // FAVORITES
-    function Favorites({ favorites, removeFromFavorites, addToCart, theme, products }) {
+    function Favorites({ favorites, removeFromFavorites, addToCart, theme, products, registerBack }) {
         const [selectedProduct, setSelectedProduct] = useState(null);
         const [toast, setToast] = useState(null);
+        useEffect(() => {
+            if (selectedProduct && registerBack) return registerBack(() => setSelectedProduct(null));
+        }, [selectedProduct]);
         const getProduct = (item) => {
             const full = products?.find(p => p.id === item.id);
             return full ? {...item, imageUrl: full.imageUrl || item.imageUrl, images: full.images || item.images} : item;
@@ -1217,9 +1230,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // CART
-    function Cart({ cart, removeFromCart, createOrder, theme, referralCode, products }) {
+    function Cart({ cart, removeFromCart, createOrder, theme, referralCode, products, registerBack }) {
         const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
         const [toast, setToast] = useState(null);
+        useEffect(() => {
+            if (isCheckoutOpen && registerBack) return registerBack(() => setIsCheckoutOpen(false));
+        }, [isCheckoutOpen]);
         const total = cart.reduce((sum,p)=>sum+(p.finalPrice||parseInt(p.displayPrice?.replace('$','')||p.price.match(/\$?\s*(\d+)/)?.[1]||0)),0);
         return (
             <div className="p-4">
@@ -1269,7 +1285,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // ORDERS
-    function Orders({ orders, onBack, products }) {
+    function Orders({ orders, onBack, products, registerBack }) {
         const [selected, setSelected] = useState(null);
         const [lightboxImgs, setLightboxImgs] = useState(null);
         const [lightboxIdx, setLightboxIdx] = useState(0);
@@ -1278,6 +1294,17 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [reviewRating, setReviewRating] = useState(5);
         const [reviewSent, setReviewSent] = useState(false);
         const [reviewAnon, setReviewAnon] = useState(false);
+
+        // Регистрируем BackButton для каждого уровня вложенности
+        useEffect(() => {
+            if (reviewOrder && registerBack) return registerBack(() => { setReviewOrder(null); setReviewSent(false); setReviewText(''); setReviewRating(5); });
+        }, [reviewOrder]);
+        useEffect(() => {
+            if (lightboxImgs && registerBack) return registerBack(() => setLightboxImgs(null));
+        }, [lightboxImgs]);
+        useEffect(() => {
+            if (selected && registerBack) return registerBack(() => setSelected(null));
+        }, [selected]);
         const safeOrders = (orders||[]).filter(o => o && o.id);
         const getStatus = s=>({
             pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},
@@ -1701,224 +1728,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 
-    // CASINO SLOTS
-    function CasinoSlots({ chkCoins, setChkCoins, onBack, SYMBOLS, REEL_POOL }) {
-        const [reels, setReels] = useState([['seven','bar','bell'],['star','horse','crown'],['diamond','seven','bar']]);
-        const [spinning, setSpinning] = useState(false);
-        const [spinningReels, setSpinningReels] = useState([false,false,false]);
-        const [bet, setBet] = useState(50);
-        const [lastWin, setLastWin] = useState(null);
-        const [totalWon, setTotalWon] = useState(0);
-        const [totalLost, setTotalLost] = useState(0);
-        const [spinCount, setSpinCount] = useState(0);
-        const [winFlash, setWinFlash] = useState(false);
-
-        const getSym = id => SYMBOLS.find(s=>s.id===id) || SYMBOLS[0];
-        const randSym = () => REEL_POOL[Math.floor(Math.random()*REEL_POOL.length)];
-
-        const BET_OPTIONS = [10,50,100,500,1000];
-
-        const spin = () => {
-            if (spinning || chkCoins < bet) return;
-            setChkCoins(p => p - bet);
-            setTotalLost(p => p + bet);
-            setSpinning(true);
-            setLastWin(null);
-            setSpinCount(p => p+1);
-            setSpinningReels([true,true,true]);
-
-            // Генерируем финальный результат
-            const result = [
-                [randSym(), randSym(), randSym()],
-                [randSym(), randSym(), randSym()],
-                [randSym(), randSym(), randSym()],
-            ];
-
-            // Стопаем барабаны по очереди
-            setTimeout(() => {
-                setReels(r => [[result[0][0],result[0][1],result[0][2]], r[1], r[2]]);
-                setSpinningReels([false,true,true]);
-            }, 700);
-            setTimeout(() => {
-                setReels(r => [r[0], [result[1][0],result[1][1],result[1][2]], r[2]]);
-                setSpinningReels([false,false,true]);
-            }, 1200);
-            setTimeout(() => {
-                setReels([result[0],result[1],result[2]]);
-                setSpinningReels([false,false,false]);
-
-                // Проверяем выигрыш — центральная строка (индекс 1)
-                const line = [result[0][1], result[1][1], result[2][1]];
-                let win = 0;
-                let winLabel = '';
-                if (line[0]===line[1] && line[1]===line[2]) {
-                    const sym = getSym(line[0]);
-                    win = bet * sym.mult;
-                    winLabel = `3× ${sym.label} → ×${sym.mult}`;
-                } else if (line[0]===line[1] || line[1]===line[2]) {
-                    const sym = getSym(line[1]);
-                    win = Math.floor(bet * 0.5);
-                    winLabel = `2× ${sym.label} → ×0.5`;
-                }
-                // Джекпот: все 9 одинаковые
-                const all = result.flat();
-                if (all.every(s=>s===all[0])) {
-                    const sym = getSym(all[0]);
-                    win = bet * sym.mult * 3;
-                    winLabel = `🎉 ДЖЕКПОТ! ${sym.label} ×${sym.mult*3}`;
-                }
-                if (win > 0) {
-                    setChkCoins(p => p + win);
-                    setTotalWon(p => p + win);
-                    setLastWin({ amount: win, label: winLabel });
-                    setWinFlash(true);
-                    setTimeout(() => setWinFlash(false), 1500);
-                } else {
-                    setLastWin({ amount: 0, label: 'Не повезло' });
-                }
-                setSpinning(false);
-            }, 1800);
-        };
-
-        return (
-            <div style={{minHeight:'100vh',background:'linear-gradient(180deg,#0f0f1a 0%,#1a0a2e 100%)',padding:'0 0 40px 0'}}>
-                {/* Шапка */}
-                <div style={{padding:'16px',display:'flex',alignItems:'center',gap:'12px',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
-                    <button onClick={onBack} style={{background:'rgba(255,255,255,0.08)',border:'none',borderRadius:'10px',padding:'8px 12px',color:'white',cursor:'pointer',fontSize:'1rem'}}>←</button>
-                    <h1 style={{color:'white',margin:0,fontSize:'1.3rem',fontWeight:700}}>🎰 CHK Casino</h1>
-                    <div style={{marginLeft:'auto',background:'rgba(255,255,255,0.1)',borderRadius:'20px',padding:'6px 14px'}}>
-                        <span style={{color:'#fbbf24',fontWeight:700,fontSize:'0.95rem'}}>{chkCoins === Infinity ? '∞' : chkCoins} CHK</span>
-                    </div>
-                </div>
-
-                <div style={{padding:'16px'}}>
-                    {/* Слот машина */}
-                    <div style={{background:'linear-gradient(135deg,#1e1b4b,#312e81)',borderRadius:'20px',padding:'20px',marginBottom:'16px',boxShadow:'0 0 40px rgba(139,92,246,0.3)',border:'1px solid rgba(139,92,246,0.3)'}}>
-                        {/* Огни вверху */}
-                        <div style={{display:'flex',justifyContent:'center',gap:'8px',marginBottom:'16px'}}>
-                            {['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899'].map((c,i)=>(
-                                <div key={i} style={{width:'10px',height:'10px',borderRadius:'50%',background:c,boxShadow:`0 0 8px ${c}`,animation:`pulse ${0.5+i*0.1}s ease-in-out infinite alternate`}}/>
-                            ))}
-                        </div>
-
-                        {/* Барабаны */}
-                        <div style={{display:'flex',gap:'8px',justifyContent:'center',marginBottom:'16px'}}>
-                            {reels.map((reel, ri) => (
-                                <div key={ri} style={{background:'rgba(0,0,0,0.4)',borderRadius:'14px',padding:'8px',border:'2px solid rgba(255,255,255,0.1)',overflow:'hidden',position:'relative'}}>
-                                    {/* Подсветка центральной строки */}
-                                    <div style={{position:'absolute',top:'50%',left:0,right:0,height:'70px',transform:'translateY(-50%)',background:'rgba(255,255,255,0.04)',borderTop:'1px solid rgba(255,255,255,0.15)',borderBottom:'1px solid rgba(255,255,255,0.15)',pointerEvents:'none',zIndex:1}}/>
-                                    <div style={{display:'flex',flexDirection:'column',gap:'4px',animation:spinningReels[ri]?'slotSpin 0.1s linear infinite':'none'}}>
-                                        {reel.map((symId, si) => {
-                                            const sym = getSym(symId);
-                                            const isCenter = si === 1;
-                                            return (
-                                                <div key={si} style={{width:'70px',height:'64px',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'10px',background:isCenter?'rgba(255,255,255,0.06)':'transparent',transform:isCenter?'scale(1.05)':'scale(0.9)',transition:'transform 0.2s',opacity:isCenter?1:0.55}}>
-                                                    {sym.svg}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Результат */}
-                        <div style={{minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            {lastWin && (
-                                <div style={{
-                                    textAlign:'center',
-                                    padding:'8px 20px',
-                                    borderRadius:'20px',
-                                    background: lastWin.amount>0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.15)',
-                                    border: `1px solid ${lastWin.amount>0?'rgba(16,185,129,0.4)':'rgba(239,68,68,0.3)'}`,
-                                    animation: winFlash ? 'winPulse 0.3s ease infinite' : 'none'
-                                }}>
-                                    {lastWin.amount > 0
-                                        ? <span style={{color:'#10b981',fontWeight:700,fontSize:'1rem'}}>+{lastWin.amount} CHK · {lastWin.label}</span>
-                                        : <span style={{color:'#ef4444',fontSize:'0.9rem'}}>Не повезло — попробуй ещё!</span>
-                                    }
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Ставка */}
-                    <div style={{background:'rgba(255,255,255,0.06)',borderRadius:'16px',padding:'16px',marginBottom:'12px',border:'1px solid rgba(255,255,255,0.08)'}}>
-                        <p style={{color:'rgba(255,255,255,0.6)',fontSize:'0.8rem',marginBottom:'10px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Ставка</p>
-                        <div style={{display:'flex',gap:'8px',marginBottom:'10px',flexWrap:'wrap'}}>
-                            {BET_OPTIONS.map(v=>(
-                                <button key={v} onClick={()=>setBet(v)} style={{
-                                    padding:'8px 14px',borderRadius:'10px',border:'none',cursor:'pointer',fontWeight:600,fontSize:'0.85rem',
-                                    background: bet===v ? '#7c3aed' : 'rgba(255,255,255,0.1)',
-                                    color: bet===v ? 'white' : 'rgba(255,255,255,0.7)',
-                                    boxShadow: bet===v ? '0 0 12px rgba(124,58,237,0.5)' : 'none',
-                                    transition:'all 0.2s'
-                                }}>{v}</button>
-                            ))}
-                        </div>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                            <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem'}}>Ставка: <strong style={{color:'#fbbf24'}}>{bet} CHK</strong></span>
-                            <span style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem'}}>Баланс: <strong style={{color:chkCoins<bet?'#ef4444':'white'}}>{chkCoins===Infinity?'∞':chkCoins}</strong></span>
-                        </div>
-                    </div>
-
-                    {/* Кнопка крутить */}
-                    <button onClick={spin} disabled={spinning || chkCoins < bet} style={{
-                        width:'100%',padding:'18px',borderRadius:'16px',border:'none',cursor:spinning||chkCoins<bet?'not-allowed':'pointer',
-                        background: spinning||chkCoins<bet ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg,#7c3aed,#ec4899)',
-                        color:'white',fontWeight:700,fontSize:'1.1rem',
-                        boxShadow: spinning||chkCoins<bet ? 'none' : '0 4px 24px rgba(124,58,237,0.5)',
-                        transition:'all 0.2s',marginBottom:'16px',
-                        opacity: spinning||chkCoins<bet ? 0.5 : 1
-                    }}>
-                        {spinning ? '🎰 Крутим...' : chkCoins < bet ? '❌ Недостаточно CHK' : '🎰 КРУТИТЬ'}
-                    </button>
-
-                    {/* Таблица выплат */}
-                    <div style={{background:'rgba(255,255,255,0.04)',borderRadius:'16px',padding:'14px',border:'1px solid rgba(255,255,255,0.06)'}}>
-                        <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.75rem',marginBottom:'10px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Таблица выплат · центральная линия</p>
-                        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-                            {SYMBOLS.slice().sort((a,b)=>b.mult-a.mult).map(s=>(
-                                <div key={s.id} style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                                    <div style={{display:'flex',gap:'3px'}}>
-                                        {[0,1,2].map(i=>(
-                                            <div key={i} style={{width:'22px',height:'22px',borderRadius:'6px',background:s.color,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                                                <span style={{fontSize:'9px',color:'white',fontWeight:900}}>{s.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.8rem',flex:1}}>3 в ряд</span>
-                                    <span style={{color:'#fbbf24',fontWeight:700,fontSize:'0.85rem'}}>×{s.mult}</span>
-                                </div>
-                            ))}
-                            <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:'6px',marginTop:'2px',display:'flex',justifyContent:'space-between'}}>
-                                <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.75rem'}}>Все 9 одинаковых</span>
-                                <span style={{color:'#ec4899',fontWeight:700,fontSize:'0.85rem'}}>ДЖЕКПОТ ×3</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Мини статистика */}
-                    {spinCount > 0 && (
-                        <div style={{display:'flex',gap:'8px',marginTop:'12px'}}>
-                            <div style={{flex:1,background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                                <p style={{color:'#10b981',fontWeight:700,fontSize:'0.9rem'}}>+{totalWon}</p>
-                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>Выиграно</p>
-                            </div>
-                            <div style={{flex:1,background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                                <p style={{color:'#ef4444',fontWeight:700,fontSize:'0.9rem'}}>-{totalLost}</p>
-                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>Потрачено</p>
-                            </div>
-                            <div style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                                <p style={{color:'white',fontWeight:700,fontSize:'0.9rem'}}>{spinCount}</p>
-                                <p style={{color:'rgba(255,255,255,0.4)',fontSize:'0.7rem'}}>Спинов</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
 
     // CHK GAME
     function CHKGame({ onBack }) {
@@ -2088,30 +1897,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             if (db && tgId) db.collection('users').doc(tgId.toString()).set({ chkDiscounts: cd, promoCodes: pc }, { merge: true }).catch(()=>{});
         };
 
-        if(activeTab==='casino') {
-            // Символы слотов — SVG картинки вместо эмодзи
-            const SYMBOLS = [
-                { id:'seven',  label:'7',       mult:10, color:'#ef4444', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#ef4444"/><text x="30" y="44" textAnchor="middle" fontSize="38" fontWeight="900" fill="white" fontFamily="Arial">7</text></svg> },
-                { id:'bar',    label:'BAR',     mult:5,  color:'#1d4ed8', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#1d4ed8"/><text x="30" y="40" textAnchor="middle" fontSize="20" fontWeight="900" fill="white" fontFamily="Arial">BAR</text></svg> },
-                { id:'bell',   label:'BELL',    mult:4,  color:'#f59e0b', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#f59e0b"/><ellipse cx="30" cy="28" rx="16" ry="14" fill="white"/><rect x="20" y="40" width="20" height="5" rx="2" fill="white"/><circle cx="30" cy="46" r="3" fill="white"/><rect x="28" y="12" width="4" height="6" rx="2" fill="white"/></svg> },
-                { id:'crown',  label:'CROWN',   mult:6,  color:'#8b5cf6', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#8b5cf6"/><polygon points="10,45 10,25 20,35 30,15 40,35 50,25 50,45" fill="gold"/><rect x="8" y="43" width="44" height="6" rx="3" fill="gold"/></svg> },
-                { id:'diamond',label:'♦',       mult:8,  color:'#06b6d4', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#06b6d4"/><polygon points="30,8 50,28 30,52 10,28" fill="white" stroke="rgba(255,255,255,0.3)" strokeWidth="2"/><polygon points="30,16 44,28 30,44 16,28" fill="#bfefff"/></svg> },
-                { id:'horse',  label:'CHK',     mult:3,  color:'#10b981', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#10b981"/><text x="30" y="36" textAnchor="middle" fontSize="13" fontWeight="800" fill="white" fontFamily="Arial">CHK</text><circle cx="30" cy="22" r="10" fill="rgba(255,255,255,0.2)" stroke="white" strokeWidth="2"/></svg> },
-                { id:'star',   label:'★',       mult:2,  color:'#ec4899', svg: <svg viewBox="0 0 60 60" width="50" height="50"><rect width="60" height="60" rx="10" fill="#ec4899"/><polygon points="30,10 35,24 50,24 38,33 43,48 30,39 17,48 22,33 10,24 25,24" fill="white"/></svg> },
-            ];
-            // Вероятности (чем реже, тем больше мультипликатор)
-            const REEL_POOL = [
-                ...Array(8).fill('star'),
-                ...Array(7).fill('horse'),
-                ...Array(6).fill('bell'),
-                ...Array(5).fill('bar'),
-                ...Array(4).fill('crown'),
-                ...Array(3).fill('diamond'),
-                ...Array(2).fill('seven'),
-            ];
-            return <CasinoSlots chkCoins={chkCoins} setChkCoins={setChkCoins} onBack={()=>setActiveTab('main')} SYMBOLS={SYMBOLS} REEL_POOL={REEL_POOL} />;
-        }
-
         if(activeTab==='blackjack') return (
             <div className="p-4">
                 <div className="flex items-center gap-4 mb-6"><button onClick={()=>setActiveTab('main')} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">Блэкджек</h1></div>
@@ -2180,10 +1965,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             : '🎰 Крутить'}
 </button> 
                     </div>
-                    <div className="grid gap-3" style={{gridTemplateColumns:'1fr 1fr'}}>
-                        <button onClick={()=>setActiveTab('blackjack')} className="app-card rounded-xl p-4 hover:bg-gray-50 transition-colors text-left border app-border"><h3 className="app-text mb-1">🃏 Блэкджек</h3><p className="app-text-secondary text-sm">Ставка 10–10000</p></button>
-                        <button onClick={()=>setActiveTab('casino')} className="rounded-xl p-4 text-left transition-colors" style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)',color:'white'}}><h3 className="mb-1" style={{fontWeight:600,fontSize:'1rem'}}>🎰 Казино</h3><p style={{fontSize:'0.8rem',opacity:0.85}}>Слоты · CHKCoins</p></button>
-                    </div>
+                    <button onClick={()=>setActiveTab('blackjack')} className="w-full app-card rounded-xl p-4 hover:bg-gray-50 transition-colors text-left border app-border"><h3 className="app-text mb-1">🃏 Блэкджек</h3><p className="app-text-secondary text-sm">Ставка 10–10000 CHK</p></button>
                     <div className="app-card rounded-xl p-4">
                         <h3 className="app-text mb-3">💰 Конвертер скидок</h3>
                         <p className="app-text-secondary text-sm mb-3">1000 CHK = 1% скидки (макс. 100%)</p>
@@ -2199,11 +1981,17 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 // PROFILE
-    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser, products, resetKey }) {
+    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser, products, resetKey, registerBack }) {
         const [activeScreen, setActiveScreen] = useState('main');
         // При нажатии на иконку Профиль снизу — возвращаемся на main
         useEffect(() => { setActiveScreen('main'); }, [resetKey]);
-        if (activeScreen==='orders') return <Orders orders={orders} onBack={()=>setActiveScreen('main')} products={products} />;
+        // Регистрируем BackButton когда в подэкране
+        useEffect(() => {
+            if (activeScreen !== 'main' && registerBack) {
+                return registerBack(() => setActiveScreen('main'));
+            }
+        }, [activeScreen]);
+        if (activeScreen==='orders') return <Orders orders={orders} onBack={()=>setActiveScreen('main')} products={products} registerBack={registerBack} />;
         if (activeScreen==='settings') return <Settings theme={theme} setTheme={setTheme} onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='support') return <Support onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='referral') return <ReferralScreen onBack={()=>setActiveScreen('main')} referralCode={referralCode} referralStats={referralStats} />;
@@ -2269,7 +2057,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     {items.map(item=>(
                         <button key={item.id} onClick={()=>{
                             if (item.id === 'profile' && activeScreen === 'profile') {
-                                // Уже в профиле — сбросить подэкран на main
                                 onResetProfile?.();
                             } else {
                                 onScreenChange(item.id);
@@ -2287,36 +2074,15 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     // APP
     function App() {
         const [activeScreen, setActiveScreen] = useState('home');
-        // Стек навигации для BackButton — запоминаем откуда пришли
-        const navStackRef = useRef([]);
+        // Стек для BackButton — каждый уровень вложенности добавляется сюда
+        const backStack = useRef([]); // массив функций "что делать при нажатии назад"
 
-        const [profileResetKey, setProfileResetKey] = useState(0);
-
-        // Навигация с историей
-        const navigateTo = (screen) => {
-            navStackRef.current = [...navStackRef.current, activeScreen];
-            setActiveScreen(screen);
-        };
-        // Переключение нижней панели — сбрасывает стек
-        const switchTab = (screen) => {
-            navStackRef.current = [];
-            setActiveScreen(screen);
-        };
-        // Назад по стеку
-        const goBack = () => {
-            const stack = navStackRef.current;
-            if (stack.length > 0) {
-                const prev = stack[stack.length - 1];
-                navStackRef.current = stack.slice(0, -1);
-                setActiveScreen(prev);
-            } else {
-                setActiveScreen('home');
-            }
-        };
+        // Регистрируем обработчик назад
+        const pushBack = (fn) => { backStack.current = [...backStack.current, fn]; };
+        const popBack  = ()   => { backStack.current = backStack.current.slice(0, -1); };
 
         const [favorites, setFavorites] = useState([]);
 const [cart, setCart] = useState([]);
-// Fix 5: сразу грузим заказы из localStorage — не ждём Firebase
 const [orders, setOrders] = useState(() => {
     try {
         const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
@@ -2341,29 +2107,55 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
             return code;
         });
         const [referralStats] = useState({ referralsCount:0, cashback:0 });
+        // profileResetKey — триггер сброса подэкрана Profile
+        const [profileResetKey, setProfileResetKey] = useState(0);
+
         const tg = window.Telegram?.WebApp;
+
         useEffect(() => {
-          if (!tg) return;
-          try { tg.expand(); } catch(e) {}
-          try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch(e) {}
-          setTimeout(() => { try { window.applyTgPadding?.(); } catch(e) {} }, 300);
+            if (!tg) return;
+            try { tg.expand(); } catch(e) {}
+            try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch(e) {}
+            setTimeout(() => { try { window.applyTgPadding?.(); } catch(e) {} }, 300);
         }, []);
+
 const tgUser = tg?.initDataUnsafe?.user;
 const startParam = tg?.initDataUnsafe?.start_param;
 
-// BackButton: показываем когда есть куда вернуться
+// BackButton — показываем когда есть стек или не на главной вкладке
+// Логика: BackButton всегда вызывает последний зарегистрированный обработчик
+const [backDepth, setBackDepth] = useState(0); // меняется чтобы триггерить useEffect
+
+const registerBack = (fn) => {
+    backStack.current = [...backStack.current, fn];
+    setBackDepth(d => d + 1);
+    return () => {
+        backStack.current = backStack.current.filter(f => f !== fn);
+        setBackDepth(d => Math.max(0, d - 1));
+    };
+};
+
 useEffect(() => {
     if (!tg?.BackButton) return;
-    const hasHistory = navStackRef.current.length > 0 || activeScreen !== 'home';
-    if (hasHistory) {
+    const isHome = activeScreen === 'home' && backStack.current.length === 0;
+    if (!isHome) {
         tg.BackButton.show();
-        const handler = () => goBack();
+        const handler = () => {
+            if (backStack.current.length > 0) {
+                // Вызываем последний зарегистрированный обработчик
+                const last = backStack.current[backStack.current.length - 1];
+                last();
+            } else {
+                // Нет обработчиков — переходим на home
+                setActiveScreen('home');
+            }
+        };
         tg.BackButton.onClick(handler);
         return () => { tg.BackButton.offClick(handler); tg.BackButton.hide(); };
     } else {
         tg.BackButton.hide();
     }
-}, [activeScreen]);
+}, [activeScreen, backDepth]);
 useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
@@ -2603,12 +2395,13 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
         return (
             <div className="min-h-screen app-bg pb-20">
                 <div className="container">
-                    {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} />}
-                    {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} />}
-                    {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} products={products} />}
-                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} products={products} resetKey={profileResetKey} />}
+                    {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} registerBack={registerBack} />}
+                    {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} registerBack={registerBack} />}
+                    {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} products={products} registerBack={registerBack} />}
+                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} products={products} resetKey={profileResetKey} registerBack={registerBack} />}
                 </div>
-                <BottomNav activeScreen={activeScreen} onScreenChange={switchTab} cartCount={cart.length} favCount={favorites.length} onResetProfile={()=>{ switchTab('profile'); setProfileResetKey(k=>k+1); }} />
+                <BottomNav activeScreen={activeScreen} onScreenChange={(s)=>{ setActiveScreen(s); backStack.current=[]; setBackDepth(0); }} cartCount={cart.length} favCount={favorites.length}
+                    onResetProfile={()=>{ setProfileResetKey(k=>k+1); backStack.current=[]; setBackDepth(0); }} />
                 {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
