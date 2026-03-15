@@ -1,1 +1,2430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>chkweardeals</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      function applyTgPadding() {
+        window.applyTgPadding = applyTgPadding;
+        var tg = window.Telegram && window.Telegram.WebApp;
+        var top = 60; // minimum to clear Telegram close button
+        if (tg) {
+          var ct = tg.contentSafeAreaInset && tg.contentSafeAreaInset.top || 0;
+          var st = tg.safeAreaInset && tg.safeAreaInset.top || 0;
+          top = Math.max(top, ct, st);
+        }
+        var root = document.getElementById('root');
+        if (root) root.style.paddingTop = top + 'px';
+      }
+      document.addEventListener('DOMContentLoaded', applyTgPadding);
+      window.addEventListener('load', applyTgPadding);
+      setTimeout(applyTgPadding, 50);
+      setTimeout(applyTgPadding, 300);
+      setTimeout(applyTgPadding, 800);
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyCCicFegu-XmRxiYcX1N3xYrD-A6gXaC5Q",
+    authDomain: "chkwear-1f9b7.firebaseapp.com",
+    projectId: "chkwear-1f9b7",
+    storageBucket: "chkwear-1f9b7.firebasestorage.app",
+    messagingSenderId: "773316792812",
+    appId: "1:773316792812:web:6c3d127d4bd2eb32c170c9"
+  });
+  const db = firebase.firestore();
+  window.__firebaseDb = db;
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f9fafb; color: #111827; }
+        #root { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .tg-header-safe { padding-top: 8px; }
+        .dark-theme { background-color: #0a1628 !important; color: #e8edf4 !important; }
+        .dark-theme .app-bg { background-color: #0a1628; }
+        .dark-theme .app-card { background-color: #13243a; border-color: #1e3a5f; }
+        .dark-theme .app-text { color: #e8edf4; }
+        .dark-theme .app-text-secondary { color: #8b9db5; }
+        .dark-theme .app-border { border-color: #1e3a5f; }
+        .dark-theme .modal-content { background-color: #13243a; color: #e8edf4; }
+        .dark-theme .modal-content .sticky { background-color: #13243a !important; }
+        .dark-theme .product-image { background-color: #0a1628; }
+        .dark-theme input, .dark-theme select, .dark-theme textarea { background-color: #0a1628; border-color: #1e3a5f; color: #e8edf4; }
+        .dark-theme input::placeholder, .dark-theme textarea::placeholder { color: #8b9db5; }
+        .dark-theme .checkout-modal .bg-blue-50 { background-color: #1e3a5f !important; color: #e8edf4 !important; }
+        .dark-theme .checkout-modal .app-card { background-color: #13243a !important; }
+        .dark-theme .checkout-modal .delivery-method-card { background-color: #13243a !important; color: #e8edf4 !important; border-color: #1e3a5f !important; }
+        .dark-theme .checkout-modal .delivery-method-card.selected { background-color: #1e3a5f !important; border-color: #3b82f6 !important; }
+        .dark-theme .address-suggestions { background-color: #13243a !important; border-color: #1e3a5f !important; }
+        .dark-theme .hover-item:hover { background-color: #1e3a5f !important; }
+.dark-theme svg { color: #e8edf4; stroke: #e8edf4; }
+.dark-theme .empty-icon svg { stroke: #8b9db5; }
+        .app-bg { background-color: #f9fafb; min-height: 100vh; }
+        .app-card { background-color: #ffffff; border-color: #e5e7eb; }
+        .app-text { color: #111827; }
+        .app-text-secondary { color: #6b7280; }
+        .app-border { border-color: #e5e7eb; }
+        .container { max-width: 1280px; margin: 0 auto; }
+        .p-4{padding:1rem}.pb-20{padding-bottom:5rem}.pb-3{padding-bottom:.75rem}
+        .mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}
+        .mb-6{margin-bottom:1.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}
+        .flex{display:flex}.flex-col{flex-direction:column}
+        .items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}
+        .gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}
+        .grid{display:grid}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+        .space-y-3>*+*{margin-top:.75rem}.space-y-4>*+*{margin-top:1rem}.space-y-6>*+*{margin-top:1.5rem}
+        .w-full{width:100%}.h-full{height:100%}
+        .w-16{width:4rem}.h-16{height:4rem}.w-20{width:5rem}.h-20{height:5rem}
+        .w-12{width:3rem}.h-12{height:3rem}.w-24{width:6rem}.h-24{height:6rem}
+        .rounded-xl{border-radius:.75rem}.rounded-full{border-radius:9999px}.rounded-2xl{border-radius:1rem}
+        .shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}.shadow-md{box-shadow:0 4px 6px -1px rgb(0 0 0/.1)}.shadow-lg{box-shadow:0 10px 15px -3px rgb(0 0 0/.1)}
+        .border{border-width:1px;border-style:solid}.border-2{border-width:2px;border-style:solid}
+        .border-b{border-bottom-width:1px;border-bottom-style:solid}.border-t{border-top-width:1px;border-top-style:solid}
+        .text-center{text-align:center}.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}
+        h1{font-size:1.5rem;font-weight:500}h2{font-size:1.25rem;font-weight:500}h3{font-size:1.125rem;font-weight:500}
+        button{border:none;background:none;cursor:pointer;font:inherit}.cursor-pointer{cursor:pointer}
+        input,select,textarea{font:inherit;border:1px solid #e5e7eb;border-radius:.75rem;padding:.75rem 1rem;width:100%}
+        input:focus,select:focus,textarea:focus{outline:2px solid #3b82f6;outline-offset:2px}
+        .scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+        .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:40;padding-bottom:env(safe-area-inset-bottom,0px)}
+        .modal-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto}
+        .modal-content{background-color:white;width:100%;max-width:42rem;border-radius:1rem;margin:auto;max-height:95vh;overflow-y:auto}
+        .categories-scroll{display:flex;gap:.75rem;overflow-x:auto;padding-bottom:.5rem;scroll-snap-type:x mandatory}
+        .category-btn{flex-shrink:0;padding:.5rem 1.5rem;border-radius:9999px;transition:all .5s cubic-bezier(.34,1.56,.64,1);scroll-snap-align:center}
+        .category-btn.active{background-color:#3b82f6;color:white;box-shadow:0 10px 15px -3px rgb(0 0 0/.1);transform:scale(1.05) translateY(-2px)}
+        .product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+        @media(min-width:768px){.product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        @media(min-width:1024px){.product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+        .product-card{overflow:hidden;border-radius:.75rem;box-shadow:0 1px 2px 0 rgb(0 0 0/.05);transition:all .3s;text-align:left;width:100%}
+        .product-card:hover{box-shadow:0 4px 6px -1px rgb(0 0 0/.1)}
+        .product-image{aspect-ratio:1/1;background-color:#f9fafb;position:relative;overflow:hidden}
+        .product-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .3s;display:block}
+        .product-card:hover .product-image img{transform:scale(1.05)}
+        .bg-blue-50{background-color:#eff6ff}.bg-blue-100{background-color:#dbeafe}.bg-blue-600{background-color:#3b82f6}.bg-blue-700{background-color:#1d4ed8}
+        .text-blue-600{color:#3b82f6}.text-blue-700{color:#1d4ed8}.border-blue-600{border-color:#3b82f6}
+        .bg-orange-100{background-color:#ffedd5}.text-orange-600{color:#ea580c}.text-orange-700{color:#c2410c}
+        .bg-green-100{background-color:#dcfce7}.bg-green-50{background-color:#f0fdf4}.text-green-600{color:#16a34a}.text-green-700{color:#15803d}
+        .bg-yellow-100{background-color:#fef3c7}.text-yellow-700{color:#a16207}
+        .bg-red-50{background-color:#fef2f2}.text-red-500{color:#ef4444}.border-red-500{border-color:#ef4444}
+        .bg-gray-50{background-color:#f9fafb}.bg-gray-100{background-color:#f3f4f6}.bg-gray-200{background-color:#e5e7eb}
+        .text-gray-500{color:#6b7280}.text-gray-600{color:#4b5563}.text-gray-700{color:#374151}.text-gray-900{color:#111827}
+        .border-gray-200{border-color:#e5e7eb}.border-gray-300{border-color:#d1d5db}
+        .hover\:bg-gray-50:hover{background-color:#f9fafb}.hover\:bg-gray-100:hover{background-color:#f3f4f6}
+        .hover\:bg-blue-700:hover{background-color:#1d4ed8}.hover\:bg-red-50:hover{background-color:#fef2f2}
+        .hover\:text-blue-600:hover{color:#3b82f6}
+        .transition-colors{transition-property:color,background-color,border-color;transition-duration:.15s}
+        .transition-all{transition-property:all;transition-duration:.15s}
+        .overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}
+        .relative{position:relative}.absolute{position:absolute}.fixed{position:fixed}.sticky{position:sticky}
+        .top-0{top:0}.inset-0{top:0;right:0;bottom:0;left:0}
+        .z-10{z-index:10}.z-20{z-index:20}.z-40{z-index:40}.z-50{z-index:50}.z-60{z-index:60}
+        .p-1{padding:.25rem}.p-2{padding:.5rem}.p-3{padding:.75rem}.p-6{padding:1.5rem}
+        .px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}
+        .px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}
+        .py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}
+        .py-3{padding-top:.75rem;padding-bottom:.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}
+        .py-8{padding-top:2rem;padding-bottom:2rem}.py-20{padding-top:5rem;padding-bottom:5rem}
+        .flex-1{flex:1 1 0%}.flex-shrink-0{flex-shrink:0}
+        .min-h-screen{min-height:100vh}.text-white{color:white}
+        .mx-auto{margin-left:auto;margin-right:auto}
+        .last\:border-b-0:last-child{border-bottom:0}
+        .disabled\:bg-gray-400:disabled{background-color:#9ca3af}.disabled\:cursor-not-allowed:disabled{cursor:not-allowed}
+        .search-container{position:relative}
+        .search-icon-left{position:absolute;left:1rem;top:50%;transform:translateY(-50%)}
+        .search-icon-right{position:absolute;right:1rem;top:50%;transform:translateY(-50%);cursor:pointer}
+        .pl-12{padding-left:3rem}.pr-12{padding-right:3rem}
+        .badge{display:inline-block;min-width:1.25rem;text-align:center}
+        .object-cover{object-fit:cover}.aspect-square{aspect-ratio:1/1}.tracking-widest{letter-spacing:.15em}
+        .font-bold{font-weight:700}.line-through{text-decoration:line-through}
+        .toast{position:fixed;top:2rem;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;padding:.75rem 1.5rem;border-radius:.75rem;box-shadow:0 10px 15px -3px rgb(0 0 0/.5);z-index:100;animation:slideDown .3s ease-out;font-weight:500}
+        .inline-notification{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#3b82f6;color:white;padding:1rem 2rem;border-radius:.75rem;box-shadow:0 10px 15px -3px rgb(0 0 0/.5);z-index:200;animation:fadeIn .3s ease-out;font-weight:500;text-align:center;min-width:200px;max-width:90%}
+        .dark-theme .inline-notification{background:#1e3a5f;border:1px solid #3b82f6}
+        @keyframes slideDown{from{transform:translateX(-50%) translateY(-100%);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+        @keyframes fadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+        .filter-panel{position:fixed;top:-100%;left:0;width:100%;max-height:80vh;overflow-y:auto;z-index:60;transition:top .3s ease-out}
+        .filter-panel.open{top:0}
+        .filter-overlay{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:55;opacity:0;transition:opacity .3s ease-out;pointer-events:none}
+        .filter-overlay.open{opacity:1;pointer-events:all}
+        .roulette-container{position:relative;height:160px;overflow:hidden;background:linear-gradient(90deg,rgba(0,0,0,.1) 0%,transparent 20px,transparent calc(100% - 20px),rgba(0,0,0,.1) 100%);border-radius:12px;margin-bottom:16px}
+        @keyframes slotSpin { 0%{transform:translateY(0)} 100%{transform:translateY(-68px)} }
+        @keyframes winPulse { 0%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.03)} 100%{opacity:1;transform:scale(1)} }
+        @keyframes pulse { 0%{opacity:0.5;box-shadow:0 0 4px currentColor} 100%{opacity:1;box-shadow:0 0 12px currentColor} }
+        .roulette-pointer{position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;z-index:20;pointer-events:none}
+        .pointer-arrow{position:absolute;top:0;left:50%;transform:translateX(-50%) translateY(-1px);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:12px solid #3b82f6}
+        .pointer-line{position:absolute;top:8px;left:50%;transform:translateX(-50%);height:calc(100% - 8px);width:2px;background:#3b82f6;box-shadow:0 0 10px rgba(59,130,246,.8)}
+        .roulette-track{position:absolute;top:20px;left:0;right:0;overflow:hidden;height:120px;border-radius:12px}
+        .roulette-items{display:flex;height:100%;align-items:center}
+        .roulette-item{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;margin:4px;width:100px;height:100px;color:white;transition:all .3s;border:2px solid transparent}
+        .roulette-item-selected{border:3px solid gold;box-shadow:0 0 20px gold;transform:scale(1.05)}
+        .admin-panel{position:fixed;bottom:6rem;right:1rem;z-index:100}
+        .admin-btn{width:50px;height:50px;border-radius:50%;background-color:#3b82f6;color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);transition:all .3s}
+        .admin-btn:hover{transform:scale(1.1);background-color:#2563eb}
+        .admin-modal{position:fixed;inset:0;background-color:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+        .admin-modal-content{background-color:white;border-radius:1rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+        .admin-products-list{max-height:300px;overflow-y:auto}
+        .address-suggestions{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto}
+        .address-suggestion-item{padding:.75rem 1rem;cursor:pointer;transition:background-color .2s}
+        .address-suggestion-item:hover{background-color:#f3f4f6}
+        .dark-theme .address-suggestion-item:hover{background-color:#1e3a5f}
+        .marketplace-card{border-radius:1rem;overflow:hidden;transition:all .3s;position:relative;margin-bottom:1rem;border:1px solid #e5e7eb;background:#fff}
+        .marketplace-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .dark-theme .marketplace-card{background:#13243a;border-color:#1e3a5f}
+        .delivery-method-card{border-radius:1rem;padding:1rem;text-align:center;transition:all .3s;cursor:pointer;border:2px solid #e5e7eb;background-color:white;color:#111827}
+        .delivery-method-card:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
+        .delivery-method-card.selected{border-color:#3b82f6;background-color:#eff6ff}
+        .dark-theme .delivery-method-card{background-color:#13243a;color:#e8edf4}
+        .dark-theme .delivery-method-card.selected{background-color:#1e3a5f;border-color:#3b82f6}
+        .price-display{font-size:1.5rem;font-weight:bold;color:#3b82f6}
+        .dark-theme .price-display{color:#60a5fa}
+        .loading-spinner{width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .location-button{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:1rem;background:#3b82f6;color:white;border:none;border-radius:.75rem;cursor:pointer;transition:background-color .3s}
+        .location-button:hover{background:#2563eb}
+       .map-container{width:100%;height:300px;border-radius:.75rem;overflow:hidden;position:relative;z-index:1}
+        @keyframes spin2{to{transform:rotate(360deg)}}
+        .animate-spin{animation:spin2 1s linear infinite}
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
 
+    const initialProducts = [];
+    const CATEGORIES = [
+        { id:'all', name:'All' }, { id:'sneakers', name:'Sneakers' }, { id:'tshirt', name:'T-Shirt' },
+        { id:'longsleeve', name:'Longsleeve' }, { id:'hoodie', name:'Hoodie' }, { id:'jacket', name:'Jacket' },
+        { id:'jeans', name:'Jeans' }, { id:'shorts', name:'Shorts' },
+    ];
+
+    // ICONS
+    const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+    const HeartIcon = ({filled}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+    const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>;
+    const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+    const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+    const XIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+    const Trash2Icon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
+    const PackageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>;
+    const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+    const MessageCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>;
+    const SendIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
+    const SunIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>;
+    const MoonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
+    const ChevronRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+    const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" fill="#3b82f6"/><line x1="2" x2="22" y1="10" y2="10" stroke="#fff" strokeWidth="1.5"/></svg>;
+    const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>;
+    const CopyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>;
+    const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    const GamepadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/></svg>;
+    const AdminIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16H5.14c-.9 0-1.63-.9-1.63-2S4.24 12 5.14 12h6.51"/><path d="M15 12h6.86c.9 0 1.63.9 1.63 2s-.73 2-1.63 2H15"/><circle cx="12" cy="8" r="5"/><path d="M12 3v2"/><path d="M12 19v2"/></svg>;
+    const LocationIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+    const MapIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l-6-6 6-6"/><path d="M15 6l6 6-6 6"/></svg>;
+    const FilterAltIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+    const GiftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect width="20" height="5" x="2" y="7"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>;
+    const MarketplaceNavIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+    const ReviewStarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+// TOAST
+    function Toast({ message, onClose }) {
+        useEffect(() => {
+            const timer = setTimeout(onClose, 3000);
+            return () => clearTimeout(timer);
+        }, [onClose]);
+        return <div className="toast">{message}</div>;
+    }
+
+    // INLINE NOTIFICATION
+    function InlineNotification({ message, onClose }) {
+        useEffect(() => {
+            const timer = setTimeout(onClose, 3000);
+            return () => clearTimeout(timer);
+        }, [onClose]);
+        return <div className="inline-notification">{message}</div>;
+    }
+
+    // OSM MAP
+    function OSMMap({ onAddressSelected, onClose }) {
+        const mapRef = useRef(null);
+        const mapInstanceRef = useRef(null);
+        useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+    const timer = setTimeout(() => {
+        const map = L.map(mapRef.current, {tap: false}).setView([55.1848, 30.2016], 13);
+        mapInstanceRef.current = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        map.invalidateSize();
+        let marker = null;
+        map.on('click', async (e) => {
+            if (marker) marker.remove();
+            marker = L.marker(e.latlng).addTo(map);
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                const d = await r.json();
+                if (d.display_name) onAddressSelected(d.display_name);
+            } catch(err) { console.error(err); }
+        });
+    }, 300);
+    return () => { 
+        clearTimeout(timer);
+        if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+    };
+}, []);
+        return (
+            <div className="app-card rounded-xl p-4 mb-4" style={{position:'relative',zIndex:1000}}>
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="app-text">Выберите адрес на карте</h3>
+                    <button onClick={onClose}><XIcon /></button>
+                </div>
+                <div ref={mapRef} className="map-container" style={{zIndex:1,position:'relative'}}></div>
+                <p className="app-text-secondary text-sm text-center mt-2">Нажмите на карту для выбора адреса</p>
+            </div>
+        );
+    }
+
+    // ADDRESS SUGGESTIONS
+    function AddressSuggestions({ query, onSelect, onClose }) {
+        const [suggestions, setSuggestions] = useState([]);
+        const [loading, setLoading] = useState(false);
+        useEffect(() => {
+            if (!query || query.length < 3) { setSuggestions([]); return; }
+            setLoading(true);
+            const timer = setTimeout(() => {
+                const mock = ['ул. Ленина', 'пр. Независимости', 'ул. Пушкинская', 'ул. Октябрьская', 'ул. Советская'];
+                setSuggestions(mock.filter(a => a.toLowerCase().includes(query.toLowerCase())).map((a,i) => `${a}, д. ${i+1}`));
+                setLoading(false);
+            }, 300);
+            return () => clearTimeout(timer);
+        }, [query]);
+        if (!query || query.length < 3) return null;
+        return (
+            <div className="address-suggestions app-card shadow-lg">
+                {loading
+                    ? <div className="p-4 flex justify-center"><div className="loading-spinner"></div></div>
+                    : suggestions.length > 0
+                        ? suggestions.map((addr, i) => <div key={i} className="address-suggestion-item app-text" onClick={() => { onSelect(addr); onClose(); }}>{addr}</div>)
+                        : <div className="p-4 app-text-secondary text-center">Адреса не найдены</div>
+                }
+            </div>
+        );
+    }
+
+    // ADMIN PANEL
+    function AdminPanel({ isOpen, onClose, products, onAddProduct, onDeleteProduct, showTabs }) {
+        const [activeTab, setActiveTab] = useState('menu');
+        useEffect(() => { if(isOpen) setActiveTab(showTabs ? 'menu' : 'products'); }, [isOpen]);
+        const [newProduct, setNewProduct] = useState({ name:'', category:'sneakers', condition:'new', imageUrl:'', description:'', poizonPrice:'', taobaoPrice:'', price:'' });
+        const [uploadedImages, setUploadedImages] = useState([]);
+        const [notification, setNotification] = useState(null);
+        const [transferUsername, setTransferUsername] = useState('');
+        const [transferAmount, setTransferAmount] = useState('');
+        const [broadcastText, setBroadcastText] = useState('');
+        const [broadcastSending, setBroadcastSending] = useState(false);
+        const [broadcastResult, setBroadcastResult] = useState(null);
+        const [dmUsername, setDmUsername] = useState('');
+        const [dmText, setDmText] = useState('');
+        const [dmSending, setDmSending] = useState(false);
+        const [dmResult, setDmResult] = useState(null);
+        const [stats, setStats] = useState(null);
+        const [statsLoading, setStatsLoading] = useState(false);
+        const [resetInput, setResetInput] = useState('');
+        const [resetLoading, setResetLoading] = useState(false);
+        const [resetResult, setResetResult] = useState(null);
+
+        const handleTransfer = async () => {
+            if (!transferUsername.trim()) { setNotification('Введите юзернейм'); return; }
+            const amount = parseInt(transferAmount);
+            if (!amount || amount <= 0) { setNotification('Введите сумму'); return; }
+            const db = window.__firebaseDb;
+            if (!db) { setNotification('Firebase недоступен'); return; }
+            const username = transferUsername.replace('@','').trim();
+            try {
+                // Try by username field first
+                let userDoc = null;
+                const snap = await db.collection('users').get();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.username && d.username.toLowerCase() === username.toLowerCase()) userDoc = doc;
+                });
+                // Try by doc ID (numeric user id) if username starts with digits
+                if (!userDoc && /^\d+$/.test(username)) {
+                    const byId = await db.collection('users').doc(username).get();
+                    if (byId.exists) userDoc = byId;
+                }
+                if (!userDoc) { setNotification('Пользователь не найден. Убедитесь что юзер открывал приложение.'); return; }
+                const current = userDoc.data().chkCoins || 0;
+                await userDoc.ref.update({ chkCoins: current + amount });
+                setNotification(`✅ Отправлено ${amount} CHK → @${username}`);
+                setTransferUsername(''); setTransferAmount('');
+            } catch(e) { setNotification('Ошибка: ' + e.message); }
+        };
+
+        const handleImageUpload = (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length > 10) { setNotification('Максимум 10 фото'); return; }
+            let processed = 0;
+            const valid = [], invalid = [];
+            files.forEach(file => {
+                if (file.size > 5*1024*1024) { invalid.push(file.name+': слишком большой'); processed++; return; }
+                if (!file.type.startsWith('image/')) { invalid.push(file.name+': не изображение'); processed++; return; }
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    if (img.width < 300 || img.height < 300) { invalid.push(file.name+': мин 300x300'); }
+                    else if (img.width > 5000 || img.height > 5000) { invalid.push(file.name+': макс 5000x5000'); }
+                    else {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > 800) { h = Math.round(h*800/w); w = 800; }
+                        else if (h > 800) { w = Math.round(w*800/h); h = 800; }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        valid.push({ name: file.name, url: canvas.toDataURL('image/jpeg', 0.8) });
+                    }
+                    URL.revokeObjectURL(url);
+                    processed++;
+                    if (processed === files.length) {
+                        setUploadedImages(prev => [...prev, ...valid]);
+                        if (invalid.length) setNotification('Ошибки: ' + invalid.join(', '));
+                        else if (valid.length) setNotification(`Загружено ${valid.length} фото`);
+                    }
+                };
+                img.onerror = () => { invalid.push(file.name+': ошибка'); processed++; };
+                img.src = url;
+            });
+        };
+
+        const handleAdd = () => {
+            if (!newProduct.name) { setNotification('Введите название'); return; }
+            if (!uploadedImages.length && !newProduct.imageUrl) { setNotification('Добавьте фото'); return; }
+            let price;
+            if (newProduct.condition === 'new') {
+                if (!newProduct.poizonPrice || !newProduct.taobaoPrice) { setNotification('Укажите цены'); return; }
+                price = `Poizon: $${newProduct.poizonPrice}, TaoBao: $${newProduct.taobaoPrice}`;
+            } else {
+                if (!newProduct.price) { setNotification('Укажите цену'); return; }
+                price = `$${newProduct.price}`;
+            }
+            const id = products.length > 0 ? Math.max(...products.map(p=>p.id)) + 1 : 1;
+            const imageUrl = uploadedImages.length > 0 ? uploadedImages[0].url : newProduct.imageUrl;
+const images = uploadedImages.length > 0 ? uploadedImages.map(i=>i.url) : (newProduct.imageUrl ? [newProduct.imageUrl] : []);
+onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='new' ? `$${newProduct.poizonPrice}` : `$${newProduct.price}`, imageUrl, images });
+            setNewProduct({ name:'', category:'sneakers', condition:'new', imageUrl:'', description:'', poizonPrice:'', taobaoPrice:'', price:'' });
+            setUploadedImages([]);
+            setNotification('Товар добавлен!');
+        };
+
+        if (!isOpen) return null;
+
+        if (activeTab === 'menu') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <h2 className="app-text">Панель администратора</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-3">
+                        <button onClick={()=>setActiveTab('products')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">📦 Управление товарами</h3>
+                            <p className="app-text-secondary text-sm">Добавить, удалить товары</p>
+                        </button>
+                        <button onClick={()=>setActiveTab('transfer')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">💰 Перевод CHK</h3>
+                            <p className="app-text-secondary text-sm">Отправить CHKCoins пользователю по юзернейму</p>
+                        </button>
+                        <button onClick={()=>setActiveTab('broadcast')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">📢 Рассылка</h3>
+                            <p className="app-text-secondary text-sm">Отправить сообщение всем пользователям бота</p>
+                        </button>
+                        <button onClick={()=>setActiveTab('dm')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">✉️ Личное сообщение</h3>
+                            <p className="app-text-secondary text-sm">Написать конкретному пользователю от имени бота</p>
+                        </button>
+                        <button onClick={async()=>{setActiveTab('stats');setStatsLoading(true);try{const db=window.__firebaseDb;const snap=await db.collection('users').get();const users=snap.docs.map(d=>d.data());const totalOrders=users.reduce((s,u)=>s+(u.orders||[]).length,0);const totalRevenue=users.reduce((s,u)=>{return s+(u.orders||[]).reduce((ss,o)=>ss+(o.finalTotal||o.total||0),0);},0);const avgCoins=users.length?Math.round(users.reduce((s,u)=>s+(u.chkCoins||0),0)/users.length):0;setStats({total:users.length,withOrders:users.filter(u=>(u.orders||[]).length>0).length,totalOrders,totalRevenue:totalRevenue.toFixed(0),avgCoins});}catch(e){setStats({error:e.message});}setStatsLoading(false);}} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">📊 Статистика</h3>
+                            <p className="app-text-secondary text-sm">Пользователи, заказы, выручка</p>
+                        </button>
+                        <button onClick={()=>{setResetResult(null);setResetInput('');setActiveTab('resetchk');}} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
+                            <h3 className="app-text mb-1">🗑 Сброс CHK баланса</h3>
+                            <p className="app-text-secondary text-sm">Обнулить CHKCoins пользователя по @юзу или ID</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        if (activeTab === 'transfer') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Перевод CHK</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div><label className="block app-text mb-2">Юзернейм получателя</label><input value={transferUsername} onChange={e=>setTransferUsername(e.target.value)} className="app-card app-text app-border" placeholder="@username" /></div>
+                        <div><label className="block app-text mb-2">Количество CHK</label><input type="number" value={transferAmount} onChange={e=>setTransferAmount(e.target.value)} className="app-card app-text app-border" placeholder="1000" /></div>
+                        <button onClick={handleTransfer} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Отправить</button>
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
+        if (activeTab === 'dm') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Личное сообщение</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {dmResult ? (
+                            <div className="text-center py-6">
+                                <div style={{fontSize:'2.5rem'}} className="mb-3">✉️</div>
+                                <p className="app-text font-bold mb-1">Отправлено!</p>
+                                <p className="app-text-secondary text-sm">{dmResult}</p>
+                                <button onClick={()=>{setDmResult(null);setDmText('');}} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">Ещё</button>
+                            </div>
+                        ) : (<>
+                            <div><label className="block app-text mb-2">Юзернейм или ID получателя</label><input value={dmUsername} onChange={e=>setDmUsername(e.target.value)} className="app-card app-text app-border w-full" placeholder="@username или 123456789" /></div>
+                            <div><label className="block app-text mb-2">Текст сообщения</label><textarea value={dmText} onChange={e=>setDmText(e.target.value)} className="app-card app-text app-border w-full" rows="5" placeholder="Ваш заказ готов к отправке..." style={{resize:'none'}} /></div>
+                            <div className="app-card border app-border rounded-xl p-3"><p className="app-text-secondary text-sm">💡 Поддерживается HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;</p></div>
+                            <button onClick={async()=>{
+                                if(!dmUsername.trim()||!dmText.trim()){setNotification('Заполните все поля');return;}
+                                setDmSending(true);
+                                const db=window.__firebaseDb;
+                                let chatId=dmUsername.replace('@','').trim();
+                                // Try to find user ID by username in Firebase
+                                if(!/^\d+$/.test(chatId)&&db){
+                                    try{
+                                        const snap=await db.collection('users').get();
+                                        snap.forEach(doc=>{const d=doc.data();if(d.username&&d.username.toLowerCase()===chatId.toLowerCase())chatId=doc.id;});
+                                    }catch(e){}
+                                }
+                                try{
+                                    const r=await fetch('https://royal-disk-c66a.external-all666.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'dm',chatId,text:dmText})});
+                                    const data=await r.json();
+                                    if(data.ok)setDmResult(`Сообщение отправлено → ${dmUsername}`);
+                                    else setNotification('Ошибка: пользователь не найден или не писал боту');
+                                }catch(e){setNotification('Ошибка: '+e.message);}
+                                setDmSending(false);
+                            }} disabled={dmSending||!dmUsername.trim()||!dmText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                                {dmSending?'⏳ Отправляем...':'✉️ Отправить'}
+                            </button>
+                        </>)}
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
+        if (activeTab === 'stats') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Статистика</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6">
+                        {statsLoading ? (
+                            <div className="flex justify-center py-10"><div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}} /></div>
+                        ) : stats?.error ? (
+                            <p className="text-red-500 text-center">{stats.error}</p>
+                        ) : stats ? (
+                            <div className="space-y-3">
+                                {[
+                                    {icon:'👥', label:'Всего пользователей', value:stats.total, color:'#3b82f6'},
+                                    {icon:'🛍', label:'Делали заказы', value:stats.withOrders, color:'#8b5cf6'},
+                                    {icon:'📦', label:'Всего заказов', value:stats.totalOrders, color:'#10b981'},
+                                    {icon:'💵', label:'Общая выручка', value:`$${stats.totalRevenue}`, color:'#ca8a04'},
+                                    {icon:'🎰', label:'Средний баланс CHK', value:`${stats.avgCoins} CHK`, color:'#ef4444'},
+                                ].map((s,i)=>(
+                                    <div key={i} className="app-card border app-border rounded-xl p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span style={{fontSize:'1.5rem'}}>{s.icon}</span>
+                                            <p className="app-text text-sm">{s.label}</p>
+                                        </div>
+                                        <p style={{color:s.color,fontWeight:'bold',fontSize:'1.2rem'}}>{s.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+        );
+
+        if (activeTab === 'resetchk') {
+            const handleReset = async () => {
+                const input = resetInput.trim().replace(/^@/, '');
+                if (!input) { setResetResult({ ok: false, msg: 'Введите @юзернейм или ID' }); return; }
+                setResetLoading(true);
+                setResetResult(null);
+                try {
+                    const db = window.__firebaseDb;
+                    if (!db) throw new Error('Firebase недоступен');
+                    let docRef = null;
+                    // Ищем по числовому ID или по username
+                    if (/^\d+$/.test(input)) {
+                        // Это числовой ID — прямой путь к документу
+                        docRef = db.collection('users').doc(input);
+                        const doc = await docRef.get();
+                        if (!doc.exists) { setResetResult({ ok: false, msg: `Пользователь с ID ${input} не найден` }); setResetLoading(false); return; }
+                        const data = doc.data();
+                        await docRef.set({ chkCoins: 0 }, { merge: true });
+                        setResetResult({ ok: true, msg: `Готово! Баланс пользователя ${data.username ? '@'+data.username : input} обнулён (было ${data.chkCoins || 0} CHK)` });
+                    } else {
+                        // Ищем по username
+                        const snap = await db.collection('users').where('username', '==', input).get();
+                        if (snap.empty) { setResetResult({ ok: false, msg: `Пользователь @${input} не найден` }); setResetLoading(false); return; }
+                        const doc = snap.docs[0];
+                        const data = doc.data();
+                        await doc.ref.set({ chkCoins: 0 }, { merge: true });
+                        setResetResult({ ok: true, msg: `Готово! Баланс @${input} обнулён (было ${data.chkCoins || 0} CHK)` });
+                    }
+                } catch(e) {
+                    setResetResult({ ok: false, msg: 'Ошибка: ' + e.message });
+                }
+                setResetLoading(false);
+            };
+
+            return (
+                <div className="admin-modal" onClick={onClose}>
+                    <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                            <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                            <h2 className="app-text">Сброс CHK баланса</h2>
+                            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="app-card border app-border rounded-xl p-4" style={{background:'rgba(239,68,68,0.05)',borderColor:'rgba(239,68,68,0.2)'}}>
+                                <p className="app-text text-sm" style={{color:'#ef4444'}}>⚠️ Действие необратимо — CHK баланс пользователя будет обнулён.</p>
+                            </div>
+                            <div>
+                                <label className="block app-text text-sm mb-2">@Юзернейм или числовой ID</label>
+                                <input
+                                    value={resetInput}
+                                    onChange={e => { setResetInput(e.target.value); setResetResult(null); }}
+                                    placeholder="username  или  123456789"
+                                    className="app-card app-text app-border w-full"
+                                    style={{padding:'.75rem 1rem',borderRadius:'.75rem'}}
+                                />
+                                <p className="app-text-secondary text-xs mt-1">Можно с @ или без. Пример: kanefix или 7764829776</p>
+                            </div>
+                            {resetResult && (
+                                <div style={{
+                                    background: resetResult.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                                    border: `1px solid ${resetResult.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                    borderRadius:'.75rem', padding:'12px 16px'
+                                }}>
+                                    <p style={{color: resetResult.ok ? '#10b981' : '#ef4444', fontSize:'.875rem', fontWeight:600}}>{resetResult.ok ? '✅ ' : '❌ '}{resetResult.msg}</p>
+                                </div>
+                            )}
+                            <button
+                                onClick={handleReset}
+                                disabled={resetLoading || !resetInput.trim()}
+                                className="w-full py-4 rounded-xl text-white font-bold disabled:opacity-50"
+                                style={{background: resetLoading ? '#6b7280' : 'linear-gradient(135deg,#ef4444,#dc2626)', cursor: resetLoading ? 'not-allowed' : 'pointer'}}
+                            >
+                                {resetLoading ? '⏳ Ищем пользователя...' : '🗑 Обнулить CHK баланс'}
+                            </button>
+                            {resetResult?.ok && (
+                                <button onClick={()=>{setResetInput('');setResetResult(null);}} className="w-full py-3 rounded-xl app-card app-text app-border text-sm">
+                                    Сбросить ещё одного
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeTab === 'broadcast') return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
+                        <h2 className="app-text">Рассылка</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {broadcastResult ? (
+                            <div className="text-center py-6">
+                                <div style={{fontSize:'2.5rem'}} className="mb-3">📢</div>
+                                <p className="app-text font-bold mb-1">Рассылка завершена!</p>
+                                <p className="app-text-secondary text-sm">{broadcastResult}</p>
+                                <button onClick={()=>{setBroadcastResult(null);setBroadcastText('');}} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl">Новая рассылка</button>
+                            </div>
+                        ) : (<>
+                            <div>
+                                <label className="block app-text mb-2">Текст сообщения</label>
+                                <textarea value={broadcastText} onChange={e=>setBroadcastText(e.target.value)} className="app-card app-text app-border w-full" rows="5" placeholder="Привет! У нас новые поступления..." style={{resize:'none'}} />
+                            </div>
+                            <div className="app-card border app-border rounded-xl p-3">
+                                <p className="app-text-secondary text-sm">💡 Будет отправлено всем пользователям, которые писали боту. Поддерживается HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;</p>
+                            </div>
+                            <button onClick={async()=>{
+                                if (!broadcastText.trim()) { setNotification('Введите текст'); return; }
+                                setBroadcastSending(true);
+                                const WORKER_URL = 'https://royal-disk-c66a.external-all666.workers.dev';
+                                const db = window.__firebaseDb;
+                                try {
+                                    const snap = await db.collection('users').get();
+                                    const userIds = snap.docs.map(d => d.id).filter(id => id && /^\d+$/.test(id));
+                                    const r = await fetch(WORKER_URL, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ type: 'broadcast', text: broadcastText, userIds })
+                                    });
+                                    const data = await r.json();
+                                    setBroadcastResult(`Отправлено: ${data.sent||0}, ошибок: ${data.failed||0}`);
+                                } catch(e) { setNotification('Ошибка: ' + e.message); }
+                                setBroadcastSending(false);
+                            }} disabled={broadcastSending||!broadcastText.trim()} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                                {broadcastSending ? '⏳ Отправляем...' : '📢 Отправить всем'}
+                            </button>
+                        </>)}
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+
+        return (
+            <div className="admin-modal" onClick={onClose}>
+                <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
+                        {showTabs ? <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button> : <div/>}
+                        <h2 className="app-text">Панель администратора</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6">
+                        <h3 className="app-text mb-4">Добавить товар</h3>
+                        <div className="space-y-4">
+                            <div><label className="block app-text mb-2">Название *</label><input type="text" value={newProduct.name} onChange={e=>setNewProduct({...newProduct,name:e.target.value})} className="app-card app-text app-border" placeholder="Nike Air Max" /></div>
+                            <div><label className="block app-text mb-2">Категория</label>
+                                <select value={newProduct.category} onChange={e=>setNewProduct({...newProduct,category:e.target.value})} className="app-card app-text app-border">
+                                    <option value="sneakers">Sneakers</option><option value="tshirt">T-Shirt</option><option value="hoodie">Hoodie</option><option value="longsleeve">Longsleeve</option><option value="jacket">Jacket</option><option value="jeans">Jeans</option><option value="shorts">Shorts</option>
+                                </select>
+                            </div>
+                            <div><label className="block app-text mb-2">Состояние</label>
+                                <select value={newProduct.condition} onChange={e=>setNewProduct({...newProduct,condition:e.target.value})} className="app-card app-text app-border">
+                                    <option value="new">New</option><option value="used">Used</option>
+                                </select>
+                            </div>
+                            {newProduct.condition === 'new' ? (<>
+                                <div><label className="block app-text mb-2">Цена Poizon ($) *</label><input type="number" value={newProduct.poizonPrice} onChange={e=>setNewProduct({...newProduct,poizonPrice:e.target.value})} className="app-card app-text app-border" placeholder="120" /></div>
+                                <div><label className="block app-text mb-2">Цена TaoBao ($) *</label><input type="number" value={newProduct.taobaoPrice} onChange={e=>setNewProduct({...newProduct,taobaoPrice:e.target.value})} className="app-card app-text app-border" placeholder="80" /></div>
+                            </>) : (
+                                <div><label className="block app-text mb-2">Цена ($) *</label><input type="number" value={newProduct.price} onChange={e=>setNewProduct({...newProduct,price:e.target.value})} className="app-card app-text app-border" placeholder="60" /></div>
+                            )}
+                            <div>
+                                <label className="block app-text mb-2">Загрузить фото</label>
+                                <div className="border-2 border-dashed app-border rounded-xl p-6 text-center">
+                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="image-upload" />
+                                    <label htmlFor="image-upload" className="cursor-pointer block">
+                                        <p className="app-text mb-1">Нажмите для загрузки</p>
+                                        <p className="app-text-secondary text-sm">До 10 фото, мин 300×300px</p>
+                                    </label>
+                                </div>
+                            </div>
+                            {uploadedImages.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {uploadedImages.map((img,i) => (
+                                        <div key={i} className="relative">
+                                            <img src={img.url} className="w-full h-24 object-cover rounded-lg" />
+                                            <button onClick={()=>setUploadedImages(p=>p.filter((_,idx)=>idx!==i))} style={{position:'absolute',top:'4px',right:'4px',background:'red',border:'none',borderRadius:'50%',width:'24px',height:'24px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'white',zIndex:10}}>✕</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div><label className="block app-text mb-2">Или ссылка на фото</label><input type="text" value={newProduct.imageUrl} onChange={e=>setNewProduct({...newProduct,imageUrl:e.target.value})} className="app-card app-text app-border" placeholder="https://..." /></div>
+                            <div><label className="block app-text mb-2">Описание</label><textarea value={newProduct.description} onChange={e=>setNewProduct({...newProduct,description:e.target.value})} className="app-card app-text app-border" rows="3" /></div>
+                            <button onClick={handleAdd} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Добавить товар</button>
+                        </div>
+                        <div className="mt-4">
+                            <h3 className="app-text mb-4">Товары ({products.length})</h3>
+                            <div className="admin-products-list">
+                                {products.length === 0
+                                    ? <p className="app-text-secondary text-center py-4">Нет товаров</p>
+                                    : <div className="space-y-3">{products.map(p => (
+                                        <div key={p.id} className="app-card rounded-xl p-4 border app-border">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden product-image"><img src={p.imageUrl} className="w-full h-full object-cover" /></div>
+                                                <div className="flex-1"><h4 className="app-text">{p.name}</h4><p className="app-text-secondary text-sm">{p.category} · {p.condition}</p><p className="app-text-secondary text-xs mt-1">{p.price}</p></div>
+                                                <button onClick={()=>{if(window.confirm('Удалить?'))onDeleteProduct(p.id)}} className="p-2 hover:bg-red-50 rounded-full text-red-500"><Trash2Icon /></button>
+                                            </div>
+                                        </div>
+                                    ))}</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {notification && <InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+    }
+
+    // PRODUCT DETAIL
+    function ProductDetail({ product, onClose, onAddToFavorites, onAddToCart }) {
+    const [marketplace, setMarketplace] = useState('poizon');
+    const [currentImg, setCurrentImg] = useState(0);
+    const [lightbox, setLightbox] = useState(false);
+    const touchStartX = useRef(null);
+    const images = product.images?.length > 0 ? product.images : [product.imageUrl];
+
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        return () => { document.body.style.overflow = ''; document.body.style.position = ''; document.body.style.width = ''; };
+    }, []);
+
+    const getPrices = () => {
+        if (product.condition === 'new') {
+            const pm = product.price.match(/Poizon:\s*\$\s*(\d+)/);
+            const tm = product.price.match(/TaoBao:\s*\$\s*(\d+)/);
+            return { poizonPrice: pm ? parseInt(pm[1]) : 0, taobaoPrice: tm ? parseInt(tm[1]) : 0 };
+        }
+        const m = product.price.match(/\$?\s*(\d+)/);
+        return { price: m ? parseInt(m[1]) : 0 };
+    };
+    const prices = getPrices();
+    const finalPrice = product.condition === 'new' ? (marketplace==='poizon' ? prices.poizonPrice : prices.taobaoPrice) : prices.price;
+    const badge = product.condition === 'new' ? (marketplace==='poizon' ? 'Original' : 'Replica') : 'Used';
+
+    const handleTouchStart = e => { touchStartX.current = e.touches[0].clientX; };
+    const handleTouchEnd = e => {
+        if (touchStartX.current === null) return;
+        const diff = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) setCurrentImg(p => p < images.length-1 ? p+1 : p);
+            else setCurrentImg(p => p > 0 ? p-1 : p);
+        }
+        touchStartX.current = null;
+    };
+
+    return (
+        <>
+            <div className="modal-overlay" onClick={onClose}>
+                <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem'}}>
+                        <h2 className="app-text">{product.name}</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+
+                    <div className="relative" style={{userSelect:'none',overflow:'hidden'}}>
+                        <div className="aspect-square product-image relative overflow-hidden cursor-pointer" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} onClick={()=>setLightbox(true)}>
+                            <img src={images[currentImg]} alt={product.name} className="w-full h-full object-cover" style={{transition:'opacity 0.2s'}} />
+                        </div>
+                        {images.length > 1 && (<>
+    <button onClick={e=>{e.stopPropagation();setCurrentImg(p=>p>0?p-1:p)}} style={{position:'absolute',left:'8px',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.4)',border:'none',borderRadius:'50%',width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'white',fontSize:'18px',zIndex:2}}>‹</button>
+    <button onClick={e=>{e.stopPropagation();setCurrentImg(p=>p<images.length-1?p+1:p)}} style={{position:'absolute',right:'8px',top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,0.4)',border:'none',borderRadius:'50%',width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'white',fontSize:'18px',zIndex:2}}>›</button>
+</>)}
+                        {images.length > 1 && (
+                            <div style={{position:'absolute',bottom:'12px',left:'50%',transform:'translateX(-50%)',display:'flex',gap:'6px',zIndex:10}}>
+                                {images.map((_,i)=>(
+                                    <button key={i} onClick={e=>{e.stopPropagation();setCurrentImg(i)}} style={{width:i===currentImg?'20px':'8px',height:'8px',borderRadius:'4px',background:i===currentImg?'#3b82f6':'rgba(255,255,255,0.7)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {images.length > 1 && (
+                        <div style={{display:'flex',gap:'8px',padding:'12px 16px',overflowX:'auto'}}>
+                            {images.map((img,i)=>(
+                                <button key={i} onClick={()=>setCurrentImg(i)} style={{flexShrink:0,width:'60px',height:'60px',borderRadius:'8px',overflow:'hidden',border:i===currentImg?'2px solid #3b82f6':'2px solid transparent',padding:0,cursor:'pointer'}}>
+                                    <img src={img} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="p-6">
+                        {product.condition === 'new' && (
+                            <div className="mb-6">
+                                <p className="app-text-secondary mb-3">Выберите маркетплейс:</p>
+                                <div className="flex gap-3">
+                                    <button onClick={()=>setMarketplace('poizon')} className={`flex-1 py-3 px-4 rounded-xl transition-all ${marketplace==='poizon'?'bg-blue-600 text-white shadow-lg':'app-card app-text hover:bg-gray-100'}`}>
+                                        <div>Poizon</div><div className="text-sm" style={{opacity:.8}}>Original</div>
+                                    </button>
+                                    <button onClick={()=>setMarketplace('taobao')} className={`flex-1 py-3 px-4 rounded-xl transition-all ${marketplace==='taobao'?'shadow-lg':'app-card app-text hover:bg-gray-100'}`} style={marketplace==='taobao'?{backgroundColor:'#ea580c',color:'white'}:{}}>
+    <div>TaoBao</div><div className="text-sm" style={{opacity:.8}}>Replica</div>
+</button>
+                                </div>
+                            </div>
+                        )}
+                        <div className="mb-6"><p className="app-text-secondary mb-2">Цена:</p><p className="price-display" style={{fontSize:'2rem'}}>${finalPrice}</p></div>
+                        {product.description && <div className="mb-6"><p className="app-text-secondary mb-2">Описание:</p><p className="app-text" style={{whiteSpace:'pre-wrap'}}>{product.description}</p></div>}
+                        <div className="flex gap-3">
+                            <button onClick={()=>{onClose();setTimeout(()=>onAddToFavorites(product.id),150)}} className="flex-1 app-card app-text border-2 app-border py-4 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                                <HeartIcon /><span>В избранное</span>
+                            </button>
+                            <button onClick={()=>{onClose();setTimeout(()=>onAddToCart(product.id,marketplace,finalPrice),150)}} className="flex-1 bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                <ShoppingCartIcon /><span>В корзину</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {lightbox && (
+                <div onClick={()=>setLightbox(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <button onClick={()=>setLightbox(false)} style={{position:'absolute',top:'16px',right:'16px',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'40px',height:'40px',color:'white',fontSize:'20px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    {images.length>1&&<button onClick={e=>{e.stopPropagation();setCurrentImg(p=>p>0?p-1:p)}} style={{position:'absolute',left:'16px',top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'44px',height:'44px',color:'white',fontSize:'24px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
+                    <img src={images[currentImg]} onClick={e=>e.stopPropagation()} style={{maxWidth:'95vw',maxHeight:'90vh',objectFit:'contain',borderRadius:'8px'}} />
+                    {images.length>1&&<button onClick={e=>{e.stopPropagation();setCurrentImg(p=>p<images.length-1?p+1:p)}} style={{position:'absolute',right:'16px',top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'50%',width:'44px',height:'44px',color:'white',fontSize:'24px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>}
+                    {images.length>1&&(
+                        <div style={{position:'absolute',bottom:'20px',left:'50%',transform:'translateX(-50%)',display:'flex',gap:'8px'}}>
+                            {images.map((_,i)=><button key={i} onClick={e=>{e.stopPropagation();setCurrentImg(i)}} style={{width:i===currentImg?'24px':'8px',height:'8px',borderRadius:'4px',background:i===currentImg?'#3b82f6':'rgba(255,255,255,0.5)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}} />)}
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
+    );
+}
+    // CHECKOUT MODAL
+    function CheckoutModal({ total, onClose, onSuccess, theme, referralCode }) {
+        const [step, setStep] = useState('delivery');
+        const [formData, setFormData] = useState({ deliveryMethod:'europost', deliveryType:'', deliveryAddress:'', deliveryDay:'', deliveryTime:'', meetingName:'', meetingNote:'', showMap:false });
+        const [errors, setErrors] = useState({});
+        const [promoCode, setPromoCode] = useState('');
+        const [promoApplied, setPromoApplied] = useState(false);
+        const [discount, setDiscount] = useState(0);
+        const [chkDiscount, setChkDiscount] = useState(0);
+        const [selectedChkDiscount, setSelectedChkDiscount] = useState(null);
+        const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+        const [notification, setNotification] = useState(null);
+
+        useEffect(() => {
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            return () => { document.body.style.overflow = ''; document.body.style.position = ''; document.body.style.width = ''; };
+        }, []);
+
+        const getDeliveryCost = () => {
+            if (formData.deliveryMethod === 'meeting') return (formData.deliveryType==='delivery_day'||formData.deliveryType==='delivery_evening') ? 3 : 0;
+            return 3.5;
+        };
+        const deliveryCost = getDeliveryCost();
+
+        const applyPromoCode = () => {
+            const userCode = localStorage.getItem('userReferralCode');
+            if (promoCode === userCode) { setNotification('Нельзя использовать свой код'); return; }
+            const used = JSON.parse(localStorage.getItem('usedReferralCodes')||'[]');
+            if (used.includes(promoCode)) { setNotification('Промокод уже использован'); return; }
+            if (promoCode === referralCode && referralCode) {
+                used.push(promoCode); localStorage.setItem('usedReferralCodes', JSON.stringify(used));
+                setPromoApplied(true); setDiscount(0.05); setNotification('Скидка 5% применена!'); return;
+            }
+            const allPC = JSON.parse(localStorage.getItem('promoCodes')||'[]');
+            const allCD = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
+            const fp = allPC.find(p=>p.code===promoCode&&!p.used);
+            const fd = allCD.find(d=>d.promoCode===promoCode&&!d.used);
+            if (fp||fd) {
+                const pct = Math.min((fp?fp.percent:fd.percent),100);
+                setPromoApplied(true); setDiscount(pct/100);
+                if (fp) localStorage.setItem('promoCodes', JSON.stringify(allPC.map(p=>p.code===promoCode?{...p,used:true}:p)));
+                if (fd) localStorage.setItem('chkDiscounts', JSON.stringify(allCD.map(d=>d.promoCode===promoCode?{...d,used:true}:d)));
+                setNotification(`Скидка ${pct}% применена!`);
+            } else setNotification('Неверный промокод');
+        };
+
+        const [chkDiscountsList, setChkDiscountsList] = React.useState(() => JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used));
+        React.useEffect(() => {
+            setChkDiscountsList(JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>!d.used));
+        }, []);
+        let subtotal = promoApplied ? parseFloat((total*(1-discount)).toFixed(2)) : total;
+        if (chkDiscount > 0) subtotal = parseFloat((subtotal*Math.max(0,1-chkDiscount/100)).toFixed(2));
+        const finalTotal = Math.max(0, subtotal + deliveryCost);
+
+        const validate = () => {
+            const e = {};
+            if (formData.deliveryMethod==='europost') {
+                if (!formData.europostOffice?.trim()) e.europostOffice='Укажите отделение';
+                if (!formData.europostName?.trim()) e.europostName='Укажите ФИО';
+                if (!formData.europostPhone?.trim()) e.europostPhone='Укажите телефон';
+            }
+            if (formData.deliveryMethod==='belpost') {
+                if (!formData.belpostAddress?.trim()) e.belpostAddress='Укажите адрес';
+                if (!formData.belpostName?.trim()) e.belpostName='Укажите ФИО';
+                if (!formData.belpostIndex?.trim()) e.belpostIndex='Укажите индекс';
+                if (!formData.belpostPhone?.trim()) e.belpostPhone='Укажите телефон';
+            }
+            if (formData.deliveryMethod==='sdek') {
+                if (!formData.sdekAddress?.trim()) e.sdekAddress='Укажите адрес';
+                if (!formData.sdekName?.trim()) e.sdekName='Укажите ФИО';
+                if (!formData.sdekPhone?.trim()) e.sdekPhone='Укажите телефон';
+            }
+            if (formData.deliveryMethod==='meeting') {
+                if (!formData.meetingName?.trim()) e.meetingName='Укажите имя';
+                if (!formData.deliveryType) e.deliveryType='Выберите способ';
+                if ((formData.deliveryType==='delivery_day'||formData.deliveryType==='delivery_evening')&&!formData.deliveryAddress?.trim()) e.deliveryAddress='Укажите адрес';
+                if (!formData.deliveryDay) e.deliveryDay='Выберите день';
+                if (!formData.deliveryTime) e.deliveryTime='Выберите время';
+            }
+            setErrors(e);
+            return Object.keys(e).length===0;
+        };
+
+        const handleFinalClose = () => {
+            if (selectedChkDiscount) {
+                const d = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
+                localStorage.setItem('chkDiscounts', JSON.stringify(d.map(x=>x.id===selectedChkDiscount?{...x,used:true}:x)));
+            }
+            const dm = {europost:'Европочта',belpost:'Белпочта',sdek:'СДЭК',meeting:'Личная встреча'}[formData.deliveryMethod];
+            let deliveryDetails = '';
+            if (formData.deliveryMethod==='europost') {
+                deliveryDetails = `Отделение: ${formData.europostOffice||''} | ФИО: ${formData.europostName||''} | Тел: ${formData.europostPhone||''}`;
+            } else if (formData.deliveryMethod==='belpost') {
+                deliveryDetails = `Адрес: ${formData.belpostAddress||''} | Индекс: ${formData.belpostIndex||''} | ФИО: ${formData.belpostName||''} | Тел: ${formData.belpostPhone||''}`;
+            } else if (formData.deliveryMethod==='sdek') {
+                deliveryDetails = `Адрес: ${formData.sdekAddress||''} | ФИО: ${formData.sdekName||''} | Тел: ${formData.sdekPhone||''}`;
+            } else if (formData.deliveryMethod==='meeting') {
+                const typeLabels = {pickup_piramida:'Самовывоз Пирамида',pickup_mak:'Самовывоз Мак',pickup_trio:'Самовывоз Трио',delivery_day:'Доставка днём',delivery_evening:'Доставка вечером'};
+                const typeLabel = typeLabels[formData.deliveryType] || formData.deliveryType || '';
+                deliveryDetails = `Имя: ${formData.meetingName||''} | Способ: ${typeLabel} | День: ${formData.deliveryDay||''} | Время: ${formData.deliveryTime||''}${formData.deliveryAddress?' | Адрес: '+formData.deliveryAddress:''}`;
+            }
+            const comment = formData.meetingNote || '';
+            const originalTotal = parseFloat((total + deliveryCost).toFixed(2));
+            const discountInfo = chkDiscount > 0 ? `скидка ${chkDiscount}%, было $${originalTotal}` : (promoApplied ? `промокод -${Math.round(discount*100)}%` : '');
+            onSuccess(dm, deliveryDetails, comment, parseFloat((subtotal + deliveryCost).toFixed(2)), discountInfo);
+            onClose();
+        };
+
+        const today=new Date(), tomorrow=new Date(today), dayAfter=new Date(today);
+        tomorrow.setDate(today.getDate()+1); dayAfter.setDate(today.getDate()+2);
+        const fmt = d => `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
+        const getTimeOpts = () => {
+            if (formData.deliveryType==='pickup_piramida') return [{value:'20:00',label:'20:00'}];
+            if (formData.deliveryType==='pickup_mak') return [{value:'21:00',label:'21:00'}];
+            if (formData.deliveryType==='pickup_trio') return [{value:'22:00',label:'22:00'}];
+            if (formData.deliveryType==='delivery_day') return [{value:'13:00-14:00',label:'13:00-14:00'},{value:'14:00-15:00',label:'14:00-15:00'},{value:'15:00-16:00',label:'15:00-16:00'}];
+            if (formData.deliveryType==='delivery_evening') return [{value:'17:00-18:00',label:'17:00-18:00'},{value:'18:00-19:00',label:'18:00-19:00'},{value:'19:00-20:00',label:'19:00-20:00'}];
+            return [];
+        };
+        const needsAddress = formData.deliveryType==='delivery_day'||formData.deliveryType==='delivery_evening';
+
+        return (
+            <div className="modal-overlay checkout-modal" onClick={step==='success'?handleFinalClose:onClose}>
+                <div className="modal-content app-card" onClick={e=>e.stopPropagation()}>
+                    <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card" style={{borderTopLeftRadius:'1rem',borderTopRightRadius:'1rem',backgroundColor:theme==='dark'?'#13243a':'white'}}>
+                        <h2 className="app-text">{step==='delivery'?'Данные доставки':step==='payment'?'Продолжить':'Заказ оформлен'}</h2>
+                        <button onClick={step==='success'?handleFinalClose:onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                    </div>
+                    <div className="p-6">
+                        {step==='delivery' && (
+                            <div className="space-y-6">
+                                <div className="bg-blue-50 rounded-xl p-6 text-center">
+                                    <p className="app-text mb-2">Сумма заказа:</p>
+                                    <p className={theme==='dark'?'text-white':'text-gray-900'} style={{fontSize:'2rem'}}>${total}</p>
+                                    {deliveryCost>0 && <p className="text-blue-600 text-sm mt-2">+ Доставка ${deliveryCost}</p>}
+                                    <p className="app-text mt-2">Итого: <span className="price-display">${finalTotal.toFixed(2)}</span></p>
+                                </div>
+                                <div>
+                                    <label className="block app-text mb-3">Способ доставки:</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[['europost','Европочта','3.5$'],['belpost','Белпочта','3.5$'],['sdek','СДЭК','3.5$'],['meeting','Личная встреча','от 0$']].map(([id,label,cost])=>(
+                                            <button key={id} onClick={()=>setFormData({...formData,deliveryMethod:id})} className={`delivery-method-card ${formData.deliveryMethod===id?'selected':''}`}>
+                                                <div className="app-text">{label}</div><div className="text-xs app-text-secondary mt-1">{cost}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                {formData.deliveryMethod==='europost' && (<>
+                                    <div><label className="block app-text mb-2">Номер отделения</label><input value={formData.europostOffice||''} onChange={e=>setFormData({...formData,europostOffice:e.target.value})} className={`app-card app-text ${errors.europostOffice?'border-red-500':'app-border'}`} placeholder="123" />{errors.europostOffice&&<p className="text-red-500 text-sm mt-1">{errors.europostOffice}</p>}</div>
+                                    <div><label className="block app-text mb-2">ФИО</label><input value={formData.europostName||''} onChange={e=>setFormData({...formData,europostName:e.target.value})} className={`app-card app-text ${errors.europostName?'border-red-500':'app-border'}`} placeholder="Иванов Иван" />{errors.europostName&&<p className="text-red-500 text-sm mt-1">{errors.europostName}</p>}</div>
+                                    <div><label className="block app-text mb-2">Телефон</label><input value={formData.europostPhone||''} onChange={e=>setFormData({...formData,europostPhone:e.target.value})} className={`app-card app-text ${errors.europostPhone?'border-red-500':'app-border'}`} placeholder="+375 29 123-45-67" />{errors.europostPhone&&<p className="text-red-500 text-sm mt-1">{errors.europostPhone}</p>}</div>
+                                </>)}
+                                {formData.deliveryMethod==='belpost' && (<>
+                                    <div className="relative"><label className="block app-text mb-2">Адрес</label><input value={formData.belpostAddress||''} onChange={e=>{setFormData({...formData,belpostAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),200)} className={`app-card app-text ${errors.belpostAddress?'border-red-500':'app-border'}`} placeholder="г. Минск, ул. Ленина, д. 1" />{showAddressSuggestions&&<AddressSuggestions query={formData.belpostAddress} onSelect={a=>setFormData({...formData,belpostAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}{errors.belpostAddress&&<p className="text-red-500 text-sm mt-1">{errors.belpostAddress}</p>}</div>
+                                    <div><label className="block app-text mb-2">ФИО</label><input value={formData.belpostName||''} onChange={e=>setFormData({...formData,belpostName:e.target.value})} className={`app-card app-text ${errors.belpostName?'border-red-500':'app-border'}`} placeholder="Иванов Иван Иванович" />{errors.belpostName&&<p className="text-red-500 text-sm mt-1">{errors.belpostName}</p>}</div>
+                                    <div><label className="block app-text mb-2">Индекс</label><input value={formData.belpostIndex||''} onChange={e=>setFormData({...formData,belpostIndex:e.target.value})} className={`app-card app-text ${errors.belpostIndex?'border-red-500':'app-border'}`} placeholder="220000" maxLength="6" />{errors.belpostIndex&&<p className="text-red-500 text-sm mt-1">{errors.belpostIndex}</p>}</div>
+                                    <div><label className="block app-text mb-2">Телефон</label><input value={formData.belpostPhone||''} onChange={e=>setFormData({...formData,belpostPhone:e.target.value})} className={`app-card app-text ${errors.belpostPhone?'border-red-500':'app-border'}`} placeholder="+375 29 123-45-67" />{errors.belpostPhone&&<p className="text-red-500 text-sm mt-1">{errors.belpostPhone}</p>}</div>
+                                </>)}
+                                {formData.deliveryMethod==='sdek' && (<>
+                                    <div className="relative"><label className="block app-text mb-2">Адрес отделения</label><input value={formData.sdekAddress||''} onChange={e=>{setFormData({...formData,sdekAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),200)} className={`app-card app-text ${errors.sdekAddress?'border-red-500':'app-border'}`} placeholder="г. Минск, ул. Ленина, д. 1" />{showAddressSuggestions&&<AddressSuggestions query={formData.sdekAddress} onSelect={a=>setFormData({...formData,sdekAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}{errors.sdekAddress&&<p className="text-red-500 text-sm mt-1">{errors.sdekAddress}</p>}</div>
+                                    <div><label className="block app-text mb-2">ФИО</label><input value={formData.sdekName||''} onChange={e=>setFormData({...formData,sdekName:e.target.value})} className={`app-card app-text ${errors.sdekName?'border-red-500':'app-border'}`} placeholder="Иванов Иван Иванович" />{errors.sdekName&&<p className="text-red-500 text-sm mt-1">{errors.sdekName}</p>}</div>
+                                    <div><label className="block app-text mb-2">Телефон</label><input value={formData.sdekPhone||''} onChange={e=>setFormData({...formData,sdekPhone:e.target.value})} className={`app-card app-text ${errors.sdekPhone?'border-red-500':'app-border'}`} placeholder="+375 29 123-45-67" />{errors.sdekPhone&&<p className="text-red-500 text-sm mt-1">{errors.sdekPhone}</p>}</div>
+                                </>)}
+                                {formData.deliveryMethod==='meeting' && (<>
+                                    <div><label className="block app-text mb-2">Ваше имя</label><input value={formData.meetingName||''} onChange={e=>setFormData({...formData,meetingName:e.target.value})} className={`app-card app-text ${errors.meetingName?'border-red-500':'app-border'}`} placeholder="Введите имя" />{errors.meetingName&&<p className="text-red-500 text-sm mt-1">{errors.meetingName}</p>}</div>
+                                    <div><label className="block app-text mb-2">Способ</label>
+                                        <select value={formData.deliveryType||''} onChange={e=>setFormData({...formData,deliveryType:e.target.value,deliveryTime:''})} className={`app-card app-text ${errors.deliveryType?'border-red-500':'app-border'}`}>
+                                            <option value="">Выберите</option>
+                                            <option value="pickup_piramida">Самовывоз Пирамида</option>
+                                            <option value="pickup_mak">Самовывоз Мак</option>
+                                            <option value="pickup_trio">Самовывоз Трио</option>
+                                            <option value="delivery_day">Доставка Дневная (13-16) — $3</option>
+                                            <option value="delivery_evening">Доставка Вечерняя (17-20) — $3</option>
+                                        </select>
+                                        {errors.deliveryType&&<p className="text-red-500 text-sm mt-1">{errors.deliveryType}</p>}
+                                    </div>
+                                    {needsAddress && (
+                                        <div className="space-y-3">
+                                            <div className="relative">
+                                                <label className="block app-text mb-2">Адрес доставки</label>
+                                                <input value={formData.deliveryAddress||''} onChange={e=>{setFormData({...formData,deliveryAddress:e.target.value});setShowAddressSuggestions(true)}} onBlur={()=>setTimeout(()=>setShowAddressSuggestions(false),200)} className={`app-card app-text ${errors.deliveryAddress?'border-red-500':'app-border'}`} placeholder="Введите адрес" />
+                                                {showAddressSuggestions&&<AddressSuggestions query={formData.deliveryAddress} onSelect={a=>setFormData({...formData,deliveryAddress:a})} onClose={()=>setShowAddressSuggestions(false)} />}
+                                                {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
+                                            </div>
+                                            <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru`);const d=await r.json();setFormData({...formData,deliveryAddress:d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                        </div>
+                                    )}
+{formData.showMap && (
+    <div style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'flex-end'}}>
+        <div style={{width:'100%',background:'white',borderRadius:'1rem 1rem 0 0',padding:'1rem',maxHeight:'70vh',overflow:'auto'}}>
+            <OSMMap onAddressSelected={addr=>setFormData({...formData,deliveryAddress:addr,showMap:false})} onClose={()=>setFormData({...formData,showMap:false})} />
+        </div>
+    </div>
+)}
+                                    <div><label className="block app-text mb-2">День</label>
+                                        <select value={formData.deliveryDay||''} onChange={e=>setFormData({...formData,deliveryDay:e.target.value})} className={`app-card app-text ${errors.deliveryDay?'border-red-500':'app-border'}`}>
+                                            <option value="">Выберите день</option>
+                                            <option value={fmt(today)}>Сегодня ({fmt(today)})</option>
+                                            <option value={fmt(tomorrow)}>Завтра ({fmt(tomorrow)})</option>
+                                            <option value={fmt(dayAfter)}>Послезавтра ({fmt(dayAfter)})</option>
+                                        </select>
+                                        {errors.deliveryDay&&<p className="text-red-500 text-sm mt-1">{errors.deliveryDay}</p>}
+                                    </div>
+                                    {formData.deliveryType && <div><label className="block app-text mb-2">Время</label>
+                                        <select value={formData.deliveryTime||''} onChange={e=>setFormData({...formData,deliveryTime:e.target.value})} className={`app-card app-text ${errors.deliveryTime?'border-red-500':'app-border'}`}>
+                                            <option value="">Выберите время</option>
+                                            {getTimeOpts().map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                        {errors.deliveryTime&&<p className="text-red-500 text-sm mt-1">{errors.deliveryTime}</p>}
+                                    </div>}
+                                    <div><label className="block app-text mb-2">Примечание</label><textarea value={formData.meetingNote||''} onChange={e=>setFormData({...formData,meetingNote:e.target.value})} className="app-card app-text app-border" rows="3" placeholder="Дополнительно" /></div>
+                                </>)}
+                                <button onClick={()=>{if(validate())setStep('payment')}} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Продолжить</button>
+                            </div>
+                        )}
+                        {step==='payment' && (
+                            <div className="space-y-6">
+                                <div className="bg-blue-50 rounded-xl p-6 text-center">
+                                    <div className="flex justify-center mb-4"><CreditCardIcon /></div>
+                                    <p className="app-text mb-2">К оплате:</p>
+                                    {(promoApplied||chkDiscount>0)&&<p className="text-gray-500 line-through text-sm">${total+deliveryCost}</p>}
+                                    {promoApplied&&<p className="text-green-600 text-sm mb-1">Промокод: -{Math.round(discount*100)}%</p>}
+                                    {chkDiscount>0&&<p className="text-green-600 text-sm mb-1">CHKGame: -{chkDiscount}%</p>}
+                                    {deliveryCost>0&&<p className="text-blue-600 text-sm mb-1">+ Доставка ${deliveryCost}</p>}
+                                    <p className={theme==='dark'?'text-white':'text-gray-900'} style={{fontSize:'2rem'}}>${finalTotal.toFixed(2)}</p>
+                                </div>
+                                {!promoApplied&&<div className="app-card rounded-xl p-4">
+                                    <label className="block app-text mb-2">Промокод:</label>
+                                    <div className="flex gap-2 mb-3"><input value={promoCode} onChange={e=>setPromoCode(e.target.value)} className="flex-1 app-border app-card app-text" placeholder="Введите код" /><button onClick={applyPromoCode} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700">Применить</button></div>
+                                    {(()=>{
+                                        const allPc = JSON.parse(localStorage.getItem('promoCodes')||'[]').filter(p=>!p.used);
+                                        if (!allPc.length) return null;
+                                        return <div><p className="app-text-secondary text-sm mb-2">Ваши промокоды:</p><div className="space-y-1">{allPc.map((p,i)=><button key={i} onClick={()=>{setPromoCode(p.code);}} className="w-full text-left app-border border rounded-xl px-3 py-2 app-text text-sm hover:bg-blue-50 transition-colors flex justify-between"><span>🎟 {p.code}</span><span className="app-text-secondary">-{p.percent}%</span></button>)}</div></div>;
+                                    })()}
+                                </div>}
+                                {chkDiscountsList.length>0&&!selectedChkDiscount&&<div className="app-card rounded-xl p-4"><label className="block app-text mb-2">Скидки CHKGame:</label><div className="space-y-2">{chkDiscountsList.map(d=><button key={d.id} onClick={()=>{setSelectedChkDiscount(d.id);setChkDiscount(Math.min(d.percent,100));setNotification(`Скидка ${Math.min(d.percent,100)}% применена!`)}} className="w-full bg-green-50 border border-green-500 text-green-700 py-3 px-4 rounded-xl hover:bg-green-100">Скидка {Math.min(d.percent,100)}%</button>)}</div></div>}
+                                {selectedChkDiscount&&<div className="bg-green-50 rounded-xl p-4 flex items-center justify-between"><p className="text-green-700 font-bold">CHK -{chkDiscount}% применена</p><button onClick={()=>{setSelectedChkDiscount(null);setChkDiscount(0)}} className="text-red-500">Убрать</button></div>}
+                                <button onClick={()=>setStep('success')} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Продолжить</button>
+                            </div>
+                        )}
+                        {step==='success' && (
+                            <div className="space-y-6 text-center">
+                                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{background:'rgba(22,163,74,0.15)'}}><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+                                <h2 className="app-text" style={{fontSize:'1.5rem'}}>Заказ оформлен!</h2>
+                                <p className="app-text-secondary">Мы свяжемся с вами для подтверждения.</p>
+                                <div className="bg-blue-50 rounded-xl p-4"><p className="app-text-secondary text-sm">По вопросам: <button onClick={()=>{const tg=window.Telegram?.WebApp;const url='https://t.me/kanefix';try{if(tg?.openTelegramLink){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} style={{color:'#3b82f6',textDecoration:'underline',background:'none',border:'none',cursor:'pointer',font:'inherit',padding:0}}>@kanefix</button></p></div>
+                                <button onClick={handleFinalClose} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700">Закрыть</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {notification&&<InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+    }
+// HOME
+    function Home({ addToFavorites, addToCart, theme, setTheme, products, isAdmin, onOpenAdminPanel }) {
+        const [selectedCategory, setSelectedCategory] = useState('all');
+        const [conditionFilter, setConditionFilter] = useState('all');
+        const [searchQuery, setSearchQuery] = useState('');
+        const [isSearchMode, setIsSearchMode] = useState(false);
+        const [selectedProduct, setSelectedProduct] = useState(null);
+        const [toast, setToast] = useState(null);
+        const [isFilterOpen, setIsFilterOpen] = useState(false);
+        const scrollRef = useRef(null);
+        const searchInputRef = useRef(null);
+
+        const handleCategoryClick = (id, i) => {
+            setSelectedCategory(id);
+            if (scrollRef.current) {
+                const btn = scrollRef.current.children[i];
+                scrollRef.current.scrollTo({ left: btn.offsetLeft - scrollRef.current.offsetWidth/2 + btn.offsetWidth/2, behavior:'smooth' });
+            }
+        };
+
+        const filtered = useMemo(() => products.filter(p => {
+            const matchCat = selectedCategory==='all' || p.category===selectedCategory;
+            const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchCond = conditionFilter==='all' || p.condition===conditionFilter;
+            return matchCat && matchSearch && matchCond;
+        }), [selectedCategory, searchQuery, conditionFilter, products]);
+
+        return (
+            <div>
+                <div className={`filter-overlay ${isFilterOpen?'open':''}`} onClick={()=>setIsFilterOpen(false)} />
+                <div className={`filter-panel app-card ${isFilterOpen?'open':''}`}>
+                    <div className="p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="app-text">Фильтры</h2>
+                            <button onClick={()=>setIsFilterOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
+                        </div>
+                        <div className="mb-4">
+                            <p className="app-text mb-3">Состояние:</p>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['all','new','used'].map(c=>(
+                                    <button key={c} onClick={()=>setConditionFilter(c)} className={`py-3 px-4 rounded-full transition-all ${conditionFilter===c?'bg-blue-600 text-white shadow-lg':'app-card app-text border app-border'}`}>
+                                        {c==='all'?'All':c==='new'?'New':'Used'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4 pb-3 flex items-center justify-between">
+                    <button onClick={()=>setIsFilterOpen(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><FilterAltIcon /></button>
+                    <h1 onClick={()=>setTheme(theme==='light'?'dark':'light')} className="app-text tracking-widest cursor-pointer" style={{fontWeight:900,fontSize:'1.5rem'}}>CHKWEAR</h1>
+                    <button onClick={()=>{setIsSearchMode(true);setTimeout(()=>searchInputRef.current?.focus(),100)}} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><SearchIcon /></button>
+                </div>
+                <div className="app-border border-b mb-4"></div>
+                {!isSearchMode ? (
+                    <>
+                        <div className="px-4">
+                            <div ref={scrollRef} className="categories-scroll scrollbar-hide">
+                                {CATEGORIES.map((cat,i)=>(
+                                    <button key={cat.id} onClick={()=>handleCategoryClick(cat.id,i)} className={`category-btn app-card app-text border app-border ${selectedCategory===cat.id?'active':''}`}>{cat.name}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="app-border border-b mt-4 mb-6"></div>
+                    </>
+                ) : (
+                    <>
+                        <div className="px-4 mb-4">
+                            <div className="search-container">
+                                <span className="search-icon-left"><SearchIcon /></span>
+                                <input ref={searchInputRef} type="text" placeholder="Поиск..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className="w-full pl-12 pr-12 py-3 app-card border app-border rounded-full app-text" style={{outline:'none'}} />
+                                <span className="search-icon-right" onClick={()=>{setIsSearchMode(false);setSearchQuery('')}}><XIcon /></span>
+                            </div>
+                        </div>
+                        <div className="app-border border-b mb-6"></div>
+                    </>
+                )}
+                <div className="px-4 pb-4">
+                    {filtered.length > 0 ? (
+                        <div className="product-grid">
+                            {filtered.map(product=>(
+                                <button key={product.id} onClick={()=>setSelectedProduct(product)} className="product-card app-card">
+                                    <div className="product-image">
+                                        <img src={product.imageUrl} alt={product.name} onError={e=>{e.target.onerror=null;e.target.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23e5e7eb" width="400" height="400"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EФото%3C/text%3E%3C/svg%3E'}} />
+                                        <div className="absolute top-2 right-2">
+                                            <span className={`text-xs px-2 py-1 rounded-full ${product.condition==='new'?'bg-green-100 text-green-600':'bg-blue-100 text-blue-700'}`}>{product.condition==='new'?'New':'Used'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3"><h3 className="app-text mb-1">{product.name}</h3><p className="app-text-secondary">{product.displayPrice||product.price}</p></div>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <p className="app-text-secondary">Товары не найдены</p>
+                            {products.length===0&&<p className="app-text-secondary text-sm mt-3">Добавьте товары через панель администратора</p>}
+                        </div>
+                    )}
+                </div>
+                {selectedProduct && <ProductDetail product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToFavorites={id=>{const p=products.find(x=>x.id===id);if(p){addToFavorites(p);setToast('Добавлено в избранное')}}} onAddToCart={(id,mp,fp)=>{const p=products.find(x=>x.id===id);if(p){addToCart(p,mp,fp);setToast('Добавлено в корзину')}}} />}
+                {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
+                {isAdmin&&<div className="admin-panel"><button onClick={onOpenAdminPanel} className="admin-btn"><AdminIcon /></button></div>}
+            </div>
+        );
+    }
+
+    // FAVORITES
+    function Favorites({ favorites, removeFromFavorites, addToCart, theme, products }) {
+        const [selectedProduct, setSelectedProduct] = useState(null);
+        const [toast, setToast] = useState(null);
+        const getProduct = (item) => {
+            const full = products?.find(p => p.id === item.id);
+            return full ? {...item, imageUrl: full.imageUrl || item.imageUrl, images: full.images || item.images} : item;
+        };
+        return (
+            <div className="p-4">
+                <div className="mb-6"><h1 className="app-text">Избранное</h1></div>
+                {favorites.length===0 ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${theme==='dark'?'bg-blue-900':'bg-pink-50'}`}>
+                            <div className={theme==='dark'?'text-blue-300':'text-pink-500'}><HeartIcon /></div>
+                        </div>
+                        <p className="app-text-secondary">Нет избранных товаров</p>
+                    </div>
+                ) : (
+                    <div className="product-grid">
+                        {favorites.map(item=>{
+                            const product = getProduct(item);
+                            return (
+                            <div key={product.id} className="app-card rounded-xl overflow-hidden shadow-sm">
+                                <button onClick={()=>setSelectedProduct(product)} className="w-full">
+                                    <div className="aspect-square product-image relative overflow-hidden">
+                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                        <div className="absolute top-2 right-2"><span className={`text-xs px-2 py-1 rounded-full ${product.condition==='new'?'bg-green-100 text-green-600':'bg-blue-100 text-blue-700'}`}>{product.condition==='new'?'New':'Used'}</span></div>
+                                    </div>
+                                </button>
+                                <div className="p-3">
+                                    <h3 className="app-text mb-1">{product.name}</h3>
+                                    <div className="flex items-center justify-between">
+                                        <p className="app-text-secondary">{product.displayPrice||product.price}</p>
+                                        <button onClick={()=>removeFromFavorites(product.id)} className="p-1 hover:bg-red-50 rounded-full transition-colors text-red-500"><Trash2Icon /></button>
+                                    </div>
+                                </div>
+                            </div>
+                            );
+                        })}
+                    </div>
+                )}
+                {selectedProduct&&<ProductDetail product={selectedProduct} onClose={()=>setSelectedProduct(null)} onAddToFavorites={()=>{}} onAddToCart={(id,mp,fp)=>{const p=favorites.find(x=>x.id===id);if(p){addToCart(getProduct(p),mp,fp);setToast('Добавлено в корзину')}}} />}
+                {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
+            </div>
+        );
+    }
+
+    // CART
+    function Cart({ cart, removeFromCart, createOrder, theme, referralCode, products }) {
+        const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+        const [toast, setToast] = useState(null);
+        const total = cart.reduce((sum,p)=>sum+(p.finalPrice||parseInt(p.displayPrice?.replace('$','')||p.price.match(/\$?\s*(\d+)/)?.[1]||0)),0);
+        return (
+            <div className="p-4">
+                <div className="mb-6"><h1 className="app-text">Корзина</h1></div>
+                {cart.length===0 ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${theme==='dark'?'bg-blue-900':'bg-blue-50'}`}>
+                            <div className={theme==='dark'?'text-blue-300':'text-blue-600'}><ShoppingCartIcon /></div>
+                        </div>
+                        <p className="app-text-secondary">Корзина пуста</p>
+                    </div>
+                ) : (<>
+                    <div className="space-y-4 mb-6">
+                        {cart.map((product,index)=>{
+                            const full = products?.find(p=>p.id===product.id);
+                            const imgUrl = full?.imageUrl || product.imageUrl;
+                            return (
+                            <div key={`${product.id}-${product.marketplace}-${index}`} className="app-card rounded-xl overflow-hidden shadow-sm flex">
+                                <div className="w-24 h-24 product-image flex-shrink-0"><img src={imgUrl} alt={product.name} className="w-full h-full object-cover" /></div>
+                                <div className="flex-1 p-4 flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <h3 className="app-text mb-1">{product.name}</h3>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            {product.condition==='new'&&<span className={`text-xs px-2 py-1 rounded-full ${product.marketplace==='poizon'?'bg-blue-100 text-blue-700':'bg-orange-100 text-orange-700'}`}>{product.marketplace==='poizon'?'Poizon':'TaoBao'}</span>}
+                                            <span className={`text-xs px-2 py-1 rounded-full ${product.condition==='new'?'bg-green-100 text-green-600':'bg-blue-100 text-blue-700'}`}>{product.condition==='new'?'New':'Used'}</span>
+                                        </div>
+                                        <p className="app-text-secondary">${product.finalPrice}</p>
+                                    </div>
+                                    <button onClick={()=>removeFromCart(product.id,product.marketplace)} className="p-2 hover:bg-red-50 rounded-full transition-colors text-red-500"><Trash2Icon /></button>
+                                </div>
+                            </div>
+                            );
+                        })}
+                    </div>
+                    <div className="app-card rounded-xl p-4 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="app-text-secondary">Итого:</span>
+                            <span className="price-display" style={{fontSize:'1.5rem'}}>${total}</span>
+                        </div>
+                        <button onClick={()=>setIsCheckoutOpen(true)} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors">Оформить заказ</button>
+                    </div>
+                </>)}
+                {isCheckoutOpen&&<CheckoutModal total={total} onClose={()=>setIsCheckoutOpen(false)} onSuccess={(dm,address,comment,finalTotal,discountInfo)=>{createOrder(cart,total,dm,address,comment,finalTotal,discountInfo);setToast('Заказ оформлен!');}} theme={theme} referralCode={referralCode} />}
+                {toast&&<Toast message={toast} onClose={()=>setToast(null)} />}
+            </div>
+        );
+    }
+
+    // ORDERS
+    function Orders({ orders, onBack, products }) {
+        const [selected, setSelected] = useState(null);
+        const [lightboxImgs, setLightboxImgs] = useState(null);
+        const [lightboxIdx, setLightboxIdx] = useState(0);
+        const [reviewOrder, setReviewOrder] = useState(null);
+        const [reviewText, setReviewText] = useState('');
+        const [reviewRating, setReviewRating] = useState(5);
+        const [reviewSent, setReviewSent] = useState(false);
+        const [reviewAnon, setReviewAnon] = useState(false);
+        const safeOrders = (orders||[]).filter(o => o && o.id);
+        const getStatus = s=>({
+            pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},
+            confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},
+            cancelled:{label:'Отменено',style:{background:'rgba(239,68,68,0.15)',color:'#ef4444'}},
+            shipped:{label:'В дороге',style:{background:'rgba(139,92,246,0.15)',color:'#8b5cf6'}},
+            delivered:{label:'Доставлено',style:{background:'rgba(16,185,129,0.15)',color:'#10b981'}},
+            received:{label:'Получено ✓',style:{background:'rgba(22,163,74,0.15)',color:'#16a34a'}}
+        }[s]||{label:s||'В обработке',style:{background:'rgba(107,114,128,0.15)',color:'#6b7280'}});
+        const getImg = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.imageUrl || item.imageUrl || ''; } catch(e){return '';} };
+        const getImgs = (item) => { try { const full = products?.find(p=>p.id===item.id); return full?.images?.length ? full.images : (full?.imageUrl ? [full.imageUrl] : (item.imageUrl ? [item.imageUrl] : [])); } catch(e){return [];} };
+
+        const [reviewSending, setReviewSending] = useState(false);
+
+        const sendReview = async () => {
+            if (!reviewText.trim() || reviewSending) return;
+            setReviewSending(true);
+            const WORKER_URL = 'https://royal-disk-c66a.external-all666.workers.dev';
+            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            const stars = '⭐'.repeat(reviewRating);
+            const authorLabel = reviewAnon ? 'Анонимно' : `${tgUser?.first_name||''}${tgUser?.username?' (@'+tgUser.username+')':''}`;
+            const msg = `💬 Новый отзыв!\n\n${stars} (${reviewRating}/5)\n📦 Заказ: ${reviewOrder?.displayId||reviewOrder?.id}\n👤 От: ${authorLabel}\n\n"${reviewText}"`;
+            try {
+                await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'notify_admin', text: msg }) });
+                const db = window.__firebaseDb;
+                if (db) {
+                    await db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: reviewAnon ? null : tgUser?.first_name, username: reviewAnon ? null : tgUser?.username, anonymous: reviewAnon, date: new Date().toLocaleDateString('ru-RU') });
+                    await db.collection('orders').doc(reviewOrder?.id).set({ reviewLeft: true }, { merge: true });
+                }
+                setReviewSent(true);
+            } catch(e) {
+                console.error(e);
+                setReviewSending(false);
+            }
+        };
+
+        if (reviewOrder) return (
+            <div className="p-4">
+                <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setReviewText('');setReviewRating(5);if(reviewSent)setSelected(s=>s?{...s,reviewLeft:true}:s);}} className="mb-6 app-text hover:text-blue-600">← Назад</button>
+                <div className="mb-6"><h1 className="app-text">Оставить отзыв</h1><p className="app-text-secondary text-sm mt-1">{reviewOrder.displayId||reviewOrder.id}</p></div>
+                {reviewSent ? (
+                    <div className="text-center py-10">
+                        <div style={{fontSize:'3rem'}} className="mb-4">🙏</div>
+                        <h2 className="app-text mb-2">Спасибо за отзыв!</h2>
+                        <p className="app-text-secondary">Ваше мнение очень важно для нас.</p>
+                        <button onClick={()=>{setReviewOrder(null);setReviewSent(false);setSelected(s=>s?{...s,reviewLeft:true}:s);}} className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-xl">Готово</button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="app-card rounded-xl p-4">
+                            <p className="app-text mb-3">Оценка:</p>
+                            <div className="flex gap-2 justify-center">
+                                {[1,2,3,4,5].map(s=>(
+                                    <button key={s} onClick={()=>setReviewRating(s)} style={{fontSize:'2rem',opacity:s<=reviewRating?1:0.3,transition:'opacity 0.2s',background:'none',border:'none',cursor:'pointer',padding:'4px'}}>⭐</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="app-card rounded-xl p-4">
+                            <p className="app-text mb-2">Комментарий:</p>
+                            <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} className="app-card app-text app-border w-full" rows="4" placeholder="Расскажите о вашем опыте..." style={{resize:'none'}} />
+                        </div>
+                        <button onClick={()=>setReviewAnon(a=>!a)} className="w-full app-card border rounded-xl p-3 flex items-center justify-between transition-all" style={{borderColor: reviewAnon?'#6b7280':'#3b82f6'}}>
+                            <div className="flex items-center gap-3">
+                                <span style={{fontSize:'1.3rem'}}>{reviewAnon?'🕵️':'👤'}</span>
+                                <div className="text-left">
+                                    <p className="app-text text-sm font-medium">{reviewAnon?'Анонимный отзыв':'Отзыв от вашего имени'}</p>
+                                    <p className="app-text-secondary text-xs">{reviewAnon?'Ваше имя скрыто':'Ник в Telegram будет виден всем'}</p>
+                                </div>
+                            </div>
+                            <div style={{width:'44px',height:'24px',borderRadius:'12px',background:reviewAnon?'#6b7280':'#3b82f6',position:'relative',transition:'background 0.2s',flexShrink:0}}>
+                                <div style={{position:'absolute',top:'3px',left:reviewAnon?'3px':'23px',width:'18px',height:'18px',borderRadius:'50%',background:'white',transition:'left 0.2s'}}/>
+                            </div>
+                        </button>
+                        {!reviewAnon && (
+                            <div style={{background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.2)',borderRadius:'.75rem',padding:'.65rem 1rem',display:'flex',alignItems:'flex-start',gap:'.5rem'}}>
+                                <span style={{fontSize:'0.9rem',flexShrink:0,marginTop:'1px'}}>ℹ️</span>
+                                <p className="app-text-secondary" style={{fontSize:'0.78rem',lineHeight:'1.4'}}>Ваш @username в Telegram будет виден всем покупателям в разделе отзывов. Если не хотите — выберите анонимный отзыв.</p>
+                            </div>
+                        )}
+                        <button onClick={sendReview} disabled={!reviewText.trim() || reviewSending} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50" style={{cursor: reviewSending ? 'not-allowed' : 'pointer'}}>
+                            {reviewSending ? '⏳ Отправляем...' : 'Отправить отзыв'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+
+        if (lightboxImgs) return (
+            <div onClick={()=>setLightboxImgs(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px'}}>
+                <img src={lightboxImgs[lightboxIdx]} onClick={e=>e.stopPropagation()} style={{maxWidth:'95vw',maxHeight:'80vh',objectFit:'contain',borderRadius:'8px'}} />
+                {lightboxImgs.length>1&&<div style={{display:'flex',gap:'8px'}}>{lightboxImgs.map((_,i)=><button key={i} onClick={e=>{e.stopPropagation();setLightboxIdx(i)}} style={{width:i===lightboxIdx?'24px':'8px',height:'8px',borderRadius:'4px',background:i===lightboxIdx?'#3b82f6':'rgba(255,255,255,0.5)',border:'none',cursor:'pointer',transition:'all 0.3s',padding:0}} />)}</div>}
+                <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem'}}>Нажмите для закрытия</p>
+            </div>
+        );
+
+        if (selected) return (
+            <div className="p-4">
+                <button onClick={()=>setSelected(null)} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад к заказам</button>
+                <div className="mb-6"><h1 className="app-text mb-2">{selected.displayId || selected.id}</h1><p className="app-text-secondary">{selected.date}</p></div>
+                <div className="app-card rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Статус:</span><span className="px-3 py-1 rounded-full text-sm font-medium" style={getStatus(selected.status).style}>{getStatus(selected.status).label}</span></div>
+                    <div className="flex items-center justify-between mb-4"><span className="app-text-secondary">Доставка:</span><span className="app-text">{selected.deliveryMethod||'—'}</span></div>
+                    <div className="flex items-center justify-between"><span className="app-text-secondary">Итого:</span><span className="price-display" style={{fontSize:'1.25rem'}}>${selected.finalTotal||selected.total}</span></div>
+                </div>
+                {selected.status==='received' && !selected.reviewLeft && (
+                    <button onClick={()=>setReviewOrder(selected)} className="w-full mb-4 text-gray-900 py-3 rounded-xl font-bold transition-colors" style={{background:'#facc15'}}>⭐ Оставить отзыв о заказе</button>
+                )}
+                <div className="mb-4"><h2 className="app-text mb-3">Товары</h2>
+                    <div className="space-y-3">{(selected.items||[]).map((p,i)=>{
+                        const imgs = getImgs(p);
+                        return (
+                        <div key={i} className="app-card rounded-xl overflow-hidden shadow-sm flex">
+                            <button onClick={()=>{if(imgs.length){setLightboxImgs(imgs);setLightboxIdx(0);}}} className="w-20 h-20 product-image flex-shrink-0 overflow-hidden" style={{cursor:imgs.length?'pointer':'default'}}>
+                                <img src={getImg(p)} alt={p.name} className="w-full h-full object-cover" />
+                            </button>
+                            <div className="flex-1 p-3"><h3 className="app-text mb-1">{p.name}</h3>{p.condition==='new'&&<span className={`text-xs px-2 py-1 rounded-full ${p.marketplace==='poizon'?'bg-blue-100 text-blue-700':'bg-orange-100 text-orange-700'}`}>{p.marketplace==='poizon'?'Poizon':'TaoBao'}</span>}<p className="app-text-secondary mt-1">${p.finalPrice}</p></div>
+                        </div>
+                        );
+                    })}</div>
+                </div>
+            </div>
+        );
+        return (
+            <div className="p-4">
+                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <div className="mb-6"><h1 className="app-text">Мои заказы</h1></div>
+                {safeOrders.length===0 ? (
+                   <div className="flex flex-col items-center justify-center py-20"><div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><PackageIcon /></div><p className="app-text-secondary">Нет заказов</p></div>
+                ) : (
+                    <div className="space-y-3">{safeOrders.map(order=>(
+                        <button key={order.id} onClick={()=>setSelected(order)} className="w-full app-card rounded-xl p-4 hover:shadow-md transition-all text-left">
+                            <div className="flex items-center justify-between mb-2"><span className="app-text font-medium">{order.displayId || order.id}</span><ChevronRightIcon /></div>
+                            <div className="flex items-center justify-between mb-2"><span className="app-text-secondary text-sm">{order.date}</span><span className="px-2 py-1 rounded-full text-xs font-medium" style={getStatus(order.status).style}>{getStatus(order.status).label}</span></div>
+                            <div className="flex items-center justify-between"><span className="app-text-secondary text-sm">{(order.items||[]).length} товар(ов)</span><span className="price-display">${order.finalTotal||order.total}</span></div>
+                        </button>
+                    ))}</div>
+                )}
+            </div>
+        );
+    }
+
+    // SETTINGS
+    function Settings({ theme, setTheme, onBack }) {
+        return (
+            <div className="p-4">
+                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <div className="mb-6"><h1 className="app-text">Настройки</h1></div>
+                <div className="app-card rounded-xl p-4">
+                    <h2 className="app-text mb-4">Тема</h2>
+                    <div className="grid grid-cols-2 gap-3">
+                        {[['light','Светлая',<SunIcon/>],['dark','Тёмная',<MoonIcon/>]].map(([t,label,icon])=>(
+                            <button key={t} onClick={()=>setTheme(t)} className={`p-4 rounded-xl border-2 transition-all ${theme===t?'border-blue-600 bg-blue-50':'app-border hover:border-gray-300 app-card'}`}>
+                                <div className="flex flex-col items-center gap-2"><div style={{color:theme===t?'#3b82f6':'#6b7280'}}>{icon}</div><span style={{color:theme===t?'#3b82f6':undefined}} className="app-text">{label}</span></div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // SUPPORT
+    function Support({ onBack }) {
+        return (
+            <div className="p-4">
+                <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+                <div className="mb-6"><h1 className="app-text">Поддержка</h1></div>
+                <div className="app-card rounded-xl p-6 text-center mb-4">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><MessageCircleIcon /></div>
+                    <h2 className="app-text mb-2">Нужна помощь?</h2>
+                    <p className="app-text-secondary mb-6">Свяжитесь с нами в Telegram</p>
+                    <button onClick={()=>{const tg=window.Telegram?.WebApp;const url='https://t.me/kanefix';try{if(tg?.openTelegramLink){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"><SendIcon /><span>Написать @kanefix</span></button>
+                </div>
+                <div className="app-card rounded-xl p-4">
+                    <h3 className="app-text mb-3">FAQ</h3>
+                    <div className="space-y-3">
+                        <div><p className="app-text mb-1">Как отследить заказ?</p><p className="app-text-secondary text-sm">В разделе "Мои заказы" в профиле.</p></div>
+                        <div><p className="app-text mb-1">Способы доставки?</p><p className="app-text-secondary text-sm">Европочта, Белпочта, СДЭК, личная встреча.</p></div>
+                        <div><p className="app-text mb-1">Poizon vs TaoBao?</p><p className="app-text-secondary text-sm">Poizon — оригинал, TaoBao — реплика по низкой цене.</p></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // REFERRAL
+    function ReferralScreen({ onBack, referralCode, referralStats }) {
+    const [copied, setCopied] = useState(false);
+    const botLink = `https://t.me/chkwear_bot?start=${referralCode}`;
+    
+    const shareLink = () => {
+        const tg = window.Telegram?.WebApp;
+        tg?.expand();
+        if (tg) {
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`);
+        } else {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent('🔥 CHKWEAR — крутой магазин кроссовок и одежды!\nПереходи по моей ссылке и получай скидку!')}`, '_blank');
+        }
+    };
+
+    return (
+        <div className="p-4">
+            <button onClick={onBack} className="mb-6 app-text hover:text-blue-600 transition-colors">← Назад</button>
+            <div className="mb-6"><h1 className="app-text mb-2">Реферальная программа</h1><p className="app-text-secondary text-sm">Приглашай друзей и получай 1000 CHK за каждого!</p></div>
+            
+            <div className="app-card rounded-xl p-6 mb-4">
+                <p className="app-text-secondary text-sm mb-2">Ваша реферальная ссылка:</p>
+                <div className="rounded-xl p-3 mb-4" style={{background:'rgba(59,130,246,0.1)',wordBreak:'break-all'}}>
+                    <p className="text-blue-600 text-sm">{botLink}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={()=>{navigator.clipboard.writeText(botLink);setCopied(true);setTimeout(()=>setCopied(false),2000)}} className="flex items-center justify-center gap-2 py-3 px-4 app-card app-text border app-border rounded-xl transition-colors">
+                        <CopyIcon /><span>{copied?'Скопировано!':'Копировать'}</span>
+                    </button>
+                    <button onClick={shareLink} className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                        <ShareIcon /><span>Поделиться</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="app-card rounded-xl p-4 mb-4">
+                <h3 className="app-text mb-3">Как это работает:</h3>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">1</div><p className="app-text text-sm">Поделись своей ссылкой с другом</p></div>
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</div><p className="app-text text-sm">Друг открывает приложение по твоей ссылке</p></div>
+                    <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</div><p className="app-text text-sm">Ты получаешь <strong>1000 CHK</strong> автоматически!</p></div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 empty-icon" style={{background:'rgba(59,130,246,0.1)'}}><UsersIcon /></div><p className="app-text-secondary text-sm mb-1">Приглашено</p><p className="app-text" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount}</p></div>
+                <div className="app-card rounded-xl p-4 text-center"><div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2" style={{background:'rgba(22,163,74,0.1)'}}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="app-text"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p className="app-text-secondary text-sm mb-1">CHK заработано</p><p className="text-green-600" style={{fontSize:'1.5rem',fontWeight:600}}>{referralStats.referralsCount * 1000}</p></div>
+            </div>
+        </div>
+    );
+}
+
+    // MARKETPLACES
+    function MarketplacesScreen({ onBack }) {
+        const items = [
+            { name:'CHKPlace', desc:'Маркетплейс для покупки и продажи', url:'https://t.me/chkplace', icon:'🛍', accent:'#3b82f6' },
+            { name:'CHKMarket', desc:'Маркетплейс для покупки и продажи', url:'https://t.me/chkmarket', icon:'🏪', accent:'#8b5cf6' },
+            { name:'CHURKS Store', desc:'Канал с новостями', url:'https://t.me/churks_store', icon:'📢', accent:'#10b981' },
+        ];
+        return (
+            <div className="p-4">
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text text-xl font-bold">Маркетплейсы</h1></div>
+                <div className="space-y-3">
+                    {items.map(({name,desc,url,icon,accent})=>(
+                        <div key={name} className="marketplace-card p-5">
+                            <div className="flex items-center gap-4">
+                                <div style={{width:48,height:48,borderRadius:'12px',background:accent+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.5rem',flexShrink:0}}>{icon}</div>
+                                <div className="flex-1">
+                                    <h3 className="app-text font-bold mb-0.5">{name}</h3>
+                                    <p className="app-text-secondary text-sm">{desc}</p>
+                                </div>
+                                <button onClick={()=>{const tg=window.Telegram?.WebApp;try{if(tg?.openTelegramLink&&url.includes('t.me')){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} style={{background:accent,color:'white',padding:'8px 18px',borderRadius:'10px',fontWeight:600,fontSize:'0.9rem',border:'none',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',gap:'4px'}}>Перейти →</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // BONUSES
+    function BonusesScreen({ onBack }) {
+        const [bonuses, setBonuses] = useState([]);
+        useEffect(() => {
+            const pc = JSON.parse(localStorage.getItem('promoCodes')||'[]').filter(b=>!b.used);
+            const cd = JSON.parse(localStorage.getItem('chkDiscounts')||'[]').filter(d=>d&&!d.used);
+            setBonuses([...pc, ...cd.map(d=>({id:d.id,code:`CHK${Math.min(d.percent,100)}%`,type:'discount',percent:Math.min(d.percent,100)}))]);
+        }, []);
+        return (
+            <div className="p-4">
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">Бонусы</h1></div>
+                <div className="app-card rounded-xl shadow-sm overflow-hidden">
+                    {bonuses.length===0
+                        ? <div className="p-8 text-center"><p className="app-text-secondary">Нет бонусов</p></div>
+                        : <div className="divide-y app-border">{bonuses.map((b,i)=>(
+                            <div key={b.id||i} className="p-4 flex items-center justify-between">
+                                <div><p className="app-text font-bold">{b.code}</p><p className="text-xs app-text-secondary">{b.type==='discount'?`Скидка ${b.percent}%`:'Промокод'}</p></div>
+                                <span className="text-xs text-green-600">Активен</span>
+                            </div>
+                        ))}</div>
+                    }
+                </div>
+            </div>
+        );
+    }
+
+    // REVIEWS
+    // REVIEWS
+    function ReviewsScreen({ onBack }) {
+        const [reviews, setReviews] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [filterRating, setFilterRating] = useState(0); // 0 = все
+
+        useEffect(() => {
+            const db = window.__firebaseDb;
+            if (!db) { setLoading(false); return; }
+            db.collection('reviews').orderBy('date','desc').get()
+                .then(snap => { setReviews(snap.docs.map(d=>({id:d.id,...d.data()}))); setLoading(false); })
+                .catch(() => setLoading(false));
+        }, []);
+
+        const avgRating = reviews.length ? (reviews.reduce((s,r)=>s+(r.rating||5),0)/reviews.length) : 0;
+        const displayed = filterRating ? reviews.filter(r=>(r.rating||5)===filterRating) : reviews;
+
+        // Fix 6: открываем Telegram ссылки без закрытия приложения
+        const openTgProfile = (username) => {
+            const tg = window.Telegram?.WebApp;
+            const url = `https://t.me/${username}`;
+            try {
+                if (tg?.openTelegramLink) { tg.openTelegramLink(url); return; }
+                if (tg?.openLink) { tg.openLink(url); return; }
+            } catch(e) {}
+            window.open(url, '_blank');
+        };
+
+        const ratingBar = (n) => {
+            const count = reviews.filter(r=>(r.rating||5)===n).length;
+            const pct = reviews.length ? (count/reviews.length)*100 : 0;
+            return { count, pct };
+        };
+
+        return (
+            <div className="p-4">
+                <button onClick={onBack} className="mb-4 app-text hover:text-blue-600 transition-colors">← Назад</button>
+
+                {/* Hero-блок с рейтингом */}
+                <div className="app-card rounded-2xl border app-border mb-4 overflow-hidden">
+                    <div style={{background:'linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 100%)',padding:'20px 20px 16px'}}>
+                        <p style={{color:'rgba(255,255,255,0.7)',fontSize:'0.8rem',marginBottom:'4px',textTransform:'uppercase',letterSpacing:'0.05em'}}>Средняя оценка</p>
+                        <div className="flex items-end gap-3">
+                            <span style={{fontSize:'3.5rem',fontWeight:800,color:'white',lineHeight:1}}>{reviews.length ? avgRating.toFixed(1) : '—'}</span>
+                            <div style={{paddingBottom:'6px'}}>
+                                <div style={{fontSize:'1.2rem',marginBottom:'2px'}}>
+                                    {[1,2,3,4,5].map(s=>(
+                                        <span key={s} style={{opacity:s<=Math.round(avgRating)?1:0.3}}>⭐</span>
+                                    ))}
+                                </div>
+                                <p style={{color:'rgba(255,255,255,0.6)',fontSize:'0.8rem'}}>{reviews.length} отзыв{reviews.length===1?'':reviews.length<5?'а':'ов'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Шкала по звёздам */}
+                    <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:'6px'}}>
+                        {[5,4,3,2,1].map(n=>{
+                            const {count,pct}=ratingBar(n);
+                            return (
+                                <button key={n} onClick={()=>setFilterRating(filterRating===n?0:n)} style={{display:'flex',alignItems:'center',gap:'8px',background:'none',border:'none',cursor:'pointer',padding:'2px 0',borderRadius:'6px',transition:'opacity 0.15s',opacity:filterRating&&filterRating!==n?0.45:1}}>
+                                    <span className="app-text-secondary" style={{fontSize:'0.75rem',width:'10px',textAlign:'right',flexShrink:0}}>{n}</span>
+                                    <span style={{fontSize:'0.7rem'}}>⭐</span>
+                                    <div style={{flex:1,height:'6px',background:'rgba(107,114,128,0.15)',borderRadius:'3px',overflow:'hidden'}}>
+                                        <div style={{height:'100%',background:n>=4?'#3b82f6':n===3?'#f59e0b':'#ef4444',borderRadius:'3px',width:`${pct}%`,transition:'width 0.5s ease'}}/>
+                                    </div>
+                                    <span className="app-text-secondary" style={{fontSize:'0.75rem',width:'16px',flexShrink:0}}>{count}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {filterRating > 0 && (
+                        <div style={{padding:'0 16px 12px'}}>
+                            <button onClick={()=>setFilterRating(0)} style={{fontSize:'0.78rem',color:'#3b82f6',background:'rgba(59,130,246,0.1)',border:'none',borderRadius:'20px',padding:'4px 12px',cursor:'pointer'}}>
+                                ✕ Убрать фильтр {filterRating}⭐
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {loading ? (
+                    <div className="flex justify-center py-10">
+                        <div style={{width:'32px',height:'32px',border:'3px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+                    </div>
+                ) : displayed.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div style={{fontSize:'3rem',marginBottom:'12px'}}>{reviews.length===0?'✍️':'🔍'}</div>
+                        <p className="app-text" style={{fontWeight:600}}>{reviews.length===0?'Пока нет отзывов':'Нет отзывов с такой оценкой'}</p>
+                        <p className="app-text-secondary text-sm mt-1">{reviews.length===0?'Будьте первым!':'Попробуйте другой фильтр'}</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {displayed.map(r => (
+                            <div key={r.id} className="app-card rounded-xl border app-border">
+                                <div style={{padding:'14px 16px'}}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            {/* Аватар */}
+                                            <div style={{width:'34px',height:'34px',borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.95rem',background:r.anonymous?'rgba(107,114,128,0.12)':'rgba(59,130,246,0.12)',color:r.anonymous?'#6b7280':'#3b82f6'}}>
+                                                {r.anonymous ? '?' : (r.userName||'?')[0].toUpperCase()}
+                                            </div>
+                                            {/* Имя / username */}
+                                            {r.anonymous ? (
+                                                <span className="app-text-secondary" style={{fontSize:'0.85rem',fontStyle:'italic'}}>Анонимно</span>
+                                            ) : r.username ? (
+                                                /* Fix 1: кликабельный, открывает Telegram без закрытия приложения */
+                                                <button onClick={()=>openTgProfile(r.username)} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',color:'#3b82f6',fontWeight:600,fontSize:'0.85rem'}}>
+                                                    @{r.username}
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                                </button>
+                                            ) : (
+                                                <span className="app-text" style={{fontSize:'0.85rem',fontWeight:500}}>{r.userName||'Покупатель'}</span>
+                                            )}
+                                        </div>
+                                        <span className="app-text-secondary" style={{fontSize:'0.72rem'}}>{r.date}</span>
+                                    </div>
+                                    {/* Звёзды */}
+                                    <div style={{marginBottom:'8px',fontSize:'0.85rem',letterSpacing:'1px'}}>
+                                        {[1,2,3,4,5].map(s=>(
+                                            <span key={s} style={{opacity:s<=(r.rating||5)?1:0.18}}>⭐</span>
+                                        ))}
+                                    </div>
+                                    <p className="app-text" style={{fontSize:'0.875rem',lineHeight:'1.55'}}>{r.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+
+    // CHK GAME
+    function CHKGame({ onBack }) {
+        const ADMIN_ID_CHK = 1910027948;
+        const isAdminUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.id === ADMIN_ID_CHK;
+        const [chkCoins, setChkCoins] = useState(()=> isAdminUser ? Infinity : parseInt(localStorage.getItem('chkCoins')||'0'));
+        const [activeTab, setActiveTab] = useState('main');
+        const [spinResult, setSpinResult] = useState(null);
+        const [isSpinning, setIsSpinning] = useState(false);
+        const [lastSpinTime, setLastSpinTime] = useState(()=>parseInt(localStorage.getItem('lastSpinTime')||'0'));
+        const canSpin = Date.now() - lastSpinTime > 24*60*60*1000;
+        const timeUntilSpin = () => {
+            const ms = 24*60*60*1000 - (Date.now() - lastSpinTime);
+            const h = Math.floor(ms/3600000);
+            const m = Math.floor((ms%3600000)/60000);
+            return `${h}ч ${m}м`;
+        };
+        const [wheelPosition, setWheelPosition] = useState(0);
+        const [selectedPrize, setSelectedPrize] = useState(null);
+        const [notification, setNotification] = useState(null);
+        const [convertAmount, setConvertAmount] = useState('');
+        const rouletteRef = useRef(null);
+
+        const wheelItems = [
+            {id:1,value:'10 CHK',amount:10,color:'#ef4444',emoji:'💰'},
+            {id:2,value:'50 CHK',amount:50,color:'#f59e0b',emoji:'💵'},
+            {id:3,value:'100 CHK',amount:100,color:'#10b981',emoji:'💸'},
+            {id:4,value:'500 CHK',amount:500,color:'#3b82f6',emoji:'💎'},
+            {id:5,value:'1000 CHK',amount:1000,color:'#8b5cf6',emoji:'💎💎'},
+            {id:6,value:'5000 CHK',amount:5000,color:'#ec4899',emoji:'💎💎💎'},
+            {id:7,value:'10000 CHK',amount:10000,color:'#06b6d4',emoji:'💎💎💎💎'},
+            {id:8,value:'Скидка 50$',amount:0,special:true,color:'#fbbf24',emoji:'🎁'},
+        ];
+
+        const [lastFirebaseCoins, setLastFirebaseCoins] = React.useState(null);
+
+        useEffect(()=>{
+            if(chkCoins === Infinity) return;
+            if(chkCoins === lastFirebaseCoins) return; // avoid loop
+            localStorage.setItem('chkCoins',chkCoins.toString());
+            const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            const db = window.__firebaseDb;
+            if (db && tgId) db.collection('users').doc(tgId.toString()).set({ chkCoins }, { merge: true }).catch(()=>{});
+        },[chkCoins]);
+
+        // Real-time sync chkCoins from Firebase
+        useEffect(() => {
+            if (isAdminUser) return;
+            const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            if (!tgId) return;
+            const db = window.__firebaseDb;
+            if (!db) return;
+            const unsub = db.collection('users').doc(tgId.toString()).onSnapshot(doc => {
+                if (doc.exists && doc.data().chkCoins !== undefined) {
+                    const val = doc.data().chkCoins;
+                    setLastFirebaseCoins(val);
+                    setChkCoins(val);
+                    localStorage.setItem('chkCoins', val.toString());
+                }
+            });
+            return () => unsub();
+        }, []);
+
+       const spinWheel = () => {
+            if (isSpinning || !canSpin) return; 
+            setIsSpinning(true); setSpinResult(null); setSelectedPrize(null);
+            const weights=[0.40,0.25,0.20,0.10,0.04,0.009,0.001,0.0001];
+            const rand=Math.random(); let cum=0, idx=0;
+            for(let i=0;i<weights.length;i++){cum+=weights[i];if(rand<cum){idx=i;break;}}
+            const prize=wheelItems[idx];
+            const itemWidth=108;
+            const containerWidth=rouletteRef.current?.offsetWidth||window.innerWidth;
+            const finalPos=-(3*wheelItems.length*itemWidth+(idx*itemWidth+itemWidth/2)-containerWidth/2);
+            setSpinResult(prize);
+            setTimeout(()=>{
+                setWheelPosition(finalPos);
+                setTimeout(()=>{
+                    setSelectedPrize(prize);
+                    if(prize.special){
+                        const code='CHK50$'+Math.random().toString(36).substring(2,6).toUpperCase();
+                        const pc=JSON.parse(localStorage.getItem('promoCodes')||'[]');
+                        pc.push({id:Date.now(),code,type:'discount',percent:50,used:false,source:'roulette'});
+                        localStorage.setItem('promoCodes',JSON.stringify(pc));
+                    } else { setChkCoins(p=>p+prize.amount); }
+                    setIsSpinning(false);
+                    const now = Date.now();
+                    setLastSpinTime(now);
+                    localStorage.setItem('lastSpinTime', now.toString());
+                    setTimeout(()=>{setWheelPosition(0);setSelectedPrize(null);setSpinResult(null);},1000);
+                },500);
+            },10);
+        };
+
+        // Blackjack — casino rules
+        const [gameState,setGameState]=useState('idle');
+        const [playerHand,setPlayerHand]=useState([]);
+        const [dealerHand,setDealerHand]=useState([]);
+        const [bet,setBet]=useState('');
+        const [winMsg,setWinMsg]=useState('');
+        const [doubled,setDoubled]=useState(false);
+        const [insuranceTaken,setInsuranceTaken]=useState(false);
+        const [insurancePaid,setInsurancePaid]=useState(0);
+        const isInf = chkCoins===Infinity;
+        const createCard=()=>{const suits=['♠','♥','♦','♣'],vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];return{suit:suits[Math.floor(Math.random()*4)],value:vals[Math.floor(Math.random()*13)]};};
+        const calcHand=hand=>{let v=0,a=0;hand.forEach(c=>{if(c.value==='A'){a++;v+=11;}else if(['J','Q','K'].includes(c.value))v+=10;else v+=parseInt(c.value);});while(v>21&&a>0){v-=10;a--;}return v;};
+        const isNatural=hand=>hand.length===2&&calcHand(hand)===21;
+        const betNum=()=>parseInt(bet)||0;
+        const startBJ=()=>{
+            const b=betNum();
+            if(b<10||(!isInf&&b>chkCoins))return;
+            if(!isInf)setChkCoins(p=>p-b);
+            const ph=[createCard(),createCard()],dh=[createCard(),createCard()];
+            setPlayerHand(ph);setDealerHand(dh);setDoubled(false);setInsuranceTaken(false);setInsurancePaid(0);setWinMsg('');
+            if(isNatural(ph)&&isNatural(dh)){if(!isInf)setChkCoins(p=>p+b);setWinMsg('Ничья — два блэкджека!');setGameState('push');}
+            else if(isNatural(ph)){const w=Math.floor(b*1.5);if(!isInf)setChkCoins(p=>p+b+w);setWinMsg(`🃏 Блэкджек! +${b+w} CHK (3:2)`);setGameState('won');}
+            else{setGameState('playing');}
+        };
+        const hit=()=>{const h=[...playerHand,createCard()];setPlayerHand(h);if(calcHand(h)>21){setWinMsg('💥 Перебор!');setGameState('lost');}};
+        const takeInsurance=()=>{
+            const ins=Math.floor(betNum()/2);
+            if(!isInf&&ins>chkCoins)return;
+            if(!isInf)setChkCoins(p=>p-ins);
+            setInsuranceTaken(true);setInsurancePaid(ins);
+        };
+        const doDouble=()=>{
+            const b=betNum();
+            if(!isInf&&b>chkCoins)return;
+            if(!isInf)setChkCoins(p=>p-b);
+            setDoubled(true);
+            const h=[...playerHand,createCard()];setPlayerHand(h);
+            if(calcHand(h)>21){setWinMsg(`💥 Перебор при удвоении! (-${b*2} CHK)`);setGameState('lost');return;}
+            let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
+            const pv=calcHand(h),dv=calcHand(d),tb=b*2;
+            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+tb*2);setWinMsg(`✅ Победа с удвоением! +${tb*2} CHK`);setGameState('won');}
+            else if(pv===dv){if(!isInf)setChkCoins(p=>p+tb);setWinMsg('Ничья при удвоении');setGameState('push');}
+            else{setWinMsg(`❌ Проигрыш при удвоении (-${tb} CHK)`);setGameState('lost');}
+        };
+        const stand=()=>{
+            const b=betNum();
+            let d=[...dealerHand];while(calcHand(d)<17)d.push(createCard());setDealerHand(d);
+            const pv=calcHand(playerHand),dv=calcHand(d);
+            const insReturn=insuranceTaken&&isNatural(d)?insurancePaid*3:0; // insurance pays 2:1 + return stake
+            if(!isInf&&insReturn>0)setChkCoins(p=>p+insReturn);
+            if(dv>21||pv>dv){if(!isInf)setChkCoins(p=>p+b*2);setWinMsg(`✅ Победа! +${b*2} CHK${insReturn?` (+${insReturn} страховка)`:''}`);;setGameState('won');}
+            else if(pv===dv){if(!isInf)setChkCoins(p=>p+b);setWinMsg('Ничья');setGameState('push');}
+            else{setWinMsg(`❌ Проигрыш${insReturn?` (+${insReturn} CHK страховка)`:''}`);;setGameState('lost');}
+        };
+        const resetBJ=()=>{setGameState('idle');setPlayerHand([]);setDealerHand([]);setWinMsg('');setDoubled(false);setInsuranceTaken(false);setInsurancePaid(0);};
+
+        const convertToDiscount=()=>{
+            const amount=parseInt(convertAmount);
+            if(!amount||amount<1000||amount>chkCoins)return;
+            const pct=Math.min(Math.floor(amount/1000),100);
+            const code='CHK'+Math.random().toString(36).substring(2,8).toUpperCase()+pct;
+            const cd=JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
+            cd.push({id:Date.now(),percent:pct,used:false,promoCode:code});
+            localStorage.setItem('chkDiscounts',JSON.stringify(cd));
+            const pc=JSON.parse(localStorage.getItem('promoCodes')||'[]');
+            pc.push({id:Date.now(),code,type:'promo',percent:pct,used:false,source:'conversion'});
+            localStorage.setItem('promoCodes',JSON.stringify(pc));
+            setChkCoins(p=>p-amount);
+            setConvertAmount('');
+            setNotification(`Создан промокод ${code} — скидка ${pct}%`);
+            // Save to Firebase so discounts persist across devices
+            const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+            const db = window.__firebaseDb;
+            if (db && tgId) db.collection('users').doc(tgId.toString()).set({ chkDiscounts: cd, promoCodes: pc }, { merge: true }).catch(()=>{});
+        };
+
+        if(activeTab==='blackjack') return (
+            <div className="p-4">
+                <div className="flex items-center gap-4 mb-6"><button onClick={()=>setActiveTab('main')} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">Блэкджек</h1></div>
+                <div className="app-card rounded-xl p-4 mb-4 text-center"><p className="app-text">Баланс: <strong>{chkCoins} CHK</strong></p></div>
+                {gameState==='idle'&&(<div className="space-y-4">
+                    <div>
+    <label className="block app-text mb-2">Ставка (от 10 CHK):</label>
+    <div className="app-card app-border rounded-xl p-3 mb-2 text-center" style={{fontSize:'1.5rem',fontWeight:'bold',minHeight:'52px'}}>
+        <span className="app-text">{bet ? `${bet} CHK` : '—'}</span>
+    </div>
+    <div className="flex gap-2 mb-2">
+        {[10,50,100,500,1000].map(v=>(
+            <button key={v} onClick={()=>setBet(prev => (parseInt(prev)||0) + v)} className="flex-1 py-2 rounded-xl text-sm app-card app-text app-border hover:bg-blue-600 hover:text-white transition-colors">+{v}</button>
+        ))}
+    </div>
+    <button onClick={()=>setBet('')} className="w-full py-2 rounded-xl text-sm app-card text-red-500 app-border hover:bg-red-50 transition-colors">Сбросить</button>
+</div>
+                    <button onClick={startBJ} disabled={!bet||parseInt(bet)<10||parseInt(bet)>chkCoins} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Начать игру</button>
+                </div>)}
+                {gameState!=='idle'&&(<div className="space-y-4">
+                    <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Дилер {gameState==='playing'?'(?)':'('+calcHand(dealerHand)+')'}</h3><div className="flex flex-wrap gap-2">{dealerHand.map((c,i)=><div key={i} style={{minWidth:'52px',background:gameState==='playing'&&i===1?'#374151':'white',border:`2px solid ${gameState==='playing'&&i===1?'#374151':'#d1d5db'}`,borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:['♥','♦'].includes(c.suit)?'#ef4444':'#111',fontWeight:'bold'}}>{gameState==='playing'&&i===1?'🂠':`${c.value}${c.suit}`}</div>)}</div></div>
+                    <div className="app-card rounded-xl p-4"><h3 className="app-text mb-2">Вы ({calcHand(playerHand)})</h3><div className="flex flex-wrap gap-2">{playerHand.map((c,i)=><div key={i} style={{minWidth:'52px',background:'white',border:'2px solid #3b82f6',borderRadius:'10px',padding:'8px',textAlign:'center',fontSize:'1.1rem',color:['♥','♦'].includes(c.suit)?'#ef4444':'#111',fontWeight:'bold'}}>{c.value}{c.suit}</div>)}</div></div>
+                    {gameState==='playing'&&<div className="space-y-2">
+                        {dealerHand[0]?.value==='A'&&!insuranceTaken&&<button onClick={takeInsurance} className="w-full py-2 rounded-xl text-sm border app-border app-text hover:bg-blue-50 transition-colors">🛡 Страховка (½ставки)</button>}
+                        <div className="grid gap-2" style={{gridTemplateColumns: betNum()<=chkCoins||isInf ? '1fr 1fr 1fr' : '1fr 1fr'}}>
+                            <button onClick={hit} className="bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 font-medium">Ещё</button>
+                            <button onClick={stand} className="bg-gray-600 text-white py-3 rounded-xl hover:bg-gray-700 font-medium">Стоп</button>
+                            {(playerHand.length===2&&(isInf||betNum()<=chkCoins))&&<button onClick={doDouble} className="bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 font-medium text-sm">2x</button>}
+                        </div>
+                        {insuranceTaken&&<p className="text-center text-xs app-text-secondary">🛡 Страховка принята (+{insurancePaid} CHK)</p>}
+                    </div>}
+                    {gameState==='won'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(22,163,74,0.1)'}}><p style={{color:'#16a34a',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
+                    {gameState==='lost'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(239,68,68,0.1)'}}><p style={{color:'#ef4444',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
+                    {gameState==='push'&&<div className="rounded-xl p-4 text-center" style={{background:'rgba(234,179,8,0.1)'}}><p style={{color:'#ca8a04',fontWeight:'bold',fontSize:'1.1rem'}}>{winMsg||'Ничья'}</p><button onClick={resetBJ} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-xl">Снова</button></div>}
+                </div>)}
+            </div>
+        );
+
+        return (
+            <div className="p-4">
+                <div className="flex items-center gap-4 mb-6"><button onClick={onBack} className="p-2 app-text hover:text-blue-600">←</button><h1 className="app-text">CHKGame</h1></div>
+                <div className="app-card rounded-xl p-6 mb-4"><h2 className="app-text mb-2">Баланс</h2><p className="text-blue-600" style={{fontSize:'2.5rem',fontWeight:'bold'}}>{chkCoins}</p><p className="app-text-secondary text-sm">CHKCoins</p></div>
+                <div className="space-y-3 mb-6">
+                    <div className="app-card rounded-xl p-4">
+                        <h3 className="app-text mb-3">🎰 Рулетка</h3>
+                        <div className="roulette-container" ref={rouletteRef}>
+                            <div className="roulette-pointer"><div className="pointer-arrow"></div><div className="pointer-line"></div></div>
+                            <div className="roulette-track">
+                                <div className="roulette-items" style={{transform:`translateX(${wheelPosition}px)`,transition:isSpinning?'transform 1.5s cubic-bezier(0.2,0.8,0.3,1)':'transform 0.3s ease-out'}}>
+                                    {[...wheelItems,...wheelItems,...wheelItems,...wheelItems,...wheelItems].map((item,i)=>(
+                                        <div key={`${item.id}-${i}`} className={`roulette-item ${selectedPrize===item&&spinResult?'roulette-item-selected':''}`} style={{backgroundColor:item.color}}>
+                                            <div className="text-2xl mb-1">{item.emoji}</div>
+                                            <div className="text-center font-bold text-sm px-2" style={{textShadow:'1px 1px 2px rgba(0,0,0,0.5)'}}>{item.value}</div>
+                                            {item.special&&<div className="text-xs mt-1 bg-yellow-500 text-black px-2 py-0.5 rounded-full">SPECIAL</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        {spinResult&&<div className="rounded-xl p-3 mb-3 text-center" style={{backgroundColor:spinResult.color,color:'white'}}><p className="font-bold">🎉 Выиграли {spinResult.value}!</p></div>}
+                       <button onClick={spinWheel} disabled={isSpinning || !canSpin} className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+    {isSpinning
+        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Крутим...</span></>
+        : !canSpin
+            ? `⏳ Следующий спин через ${timeUntilSpin()}`
+            : '🎰 Крутить'}
+</button> 
+                    </div>
+                    <button onClick={()=>setActiveTab('blackjack')} className="w-full app-card rounded-xl p-4 hover:bg-gray-50 transition-colors text-left border app-border"><h3 className="app-text mb-1">🃏 Блэкджек</h3><p className="app-text-secondary text-sm">Ставка 10–10000 CHK</p></button>
+                    <div className="app-card rounded-xl p-4">
+                        <h3 className="app-text mb-3">💰 Конвертер скидок</h3>
+                        <p className="app-text-secondary text-sm mb-3">1000 CHK = 1% скидки (макс. 100%)</p>
+                        <div className="flex gap-2 mb-2">
+                            <input type="number" value={convertAmount} onChange={e=>setConvertAmount(e.target.value)} placeholder="Сумма CHK" className="flex-1 app-card app-text app-border" />
+                            <button onClick={convertToDiscount} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700">ОК</button>
+                        </div>
+                        {convertAmount&&parseInt(convertAmount)>=1000&&<p className="text-blue-600 text-sm text-center">= {Math.min(Math.floor(parseInt(convertAmount)/1000),100)}% скидки</p>}
+                    </div>
+                </div>
+                {notification&&<InlineNotification message={notification} onClose={()=>setNotification(null)} />}
+            </div>
+        );
+    }
+// PROFILE
+    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser, products }) {
+        const [activeScreen, setActiveScreen] = useState('main');
+        if (activeScreen==='orders') return <Orders orders={orders} onBack={()=>setActiveScreen('main')} products={products} />;
+        if (activeScreen==='settings') return <Settings theme={theme} setTheme={setTheme} onBack={()=>setActiveScreen('main')} />;
+        if (activeScreen==='support') return <Support onBack={()=>setActiveScreen('main')} />;
+        if (activeScreen==='referral') return <ReferralScreen onBack={()=>setActiveScreen('main')} referralCode={referralCode} referralStats={referralStats} />;
+        if (activeScreen==='reviews') return <ReviewsScreen onBack={()=>setActiveScreen('main')} />;
+        if (activeScreen==='chkgame') return <CHKGame onBack={()=>setActiveScreen('main')} />;
+        if (activeScreen==='marketplaces') return <MarketplacesScreen onBack={()=>setActiveScreen('main')} />;
+        if (activeScreen==='bonuses') return <BonusesScreen onBack={()=>setActiveScreen('main')} />;
+
+        const menuItems = [
+            ...(isAdmin?[{icon:AdminIcon,label:'Панель админа',onClick:onOpenAdminPanel}]:[]),
+            {icon:PackageIcon,label:'Мои заказы',onClick:()=>setActiveScreen('orders'),badge:orders.length>0?orders.length:null},
+            {icon:GamepadIcon,label:'CHKGame',onClick:()=>setActiveScreen('chkgame')},
+            {icon:GiftIcon,label:'Бонусы',onClick:()=>setActiveScreen('bonuses')},
+            {icon:MarketplaceNavIcon,label:'Маркетплейсы',onClick:()=>setActiveScreen('marketplaces')},
+            {icon:ShareIcon,label:'Реферальная программа',onClick:()=>setActiveScreen('referral')},
+            {icon:ReviewStarIcon,label:'Отзывы покупателей',onClick:()=>setActiveScreen('reviews')},
+            {icon:SettingsIcon,label:'Настройки',onClick:()=>setActiveScreen('settings')},
+            {icon:MessageCircleIcon,label:'Поддержка',onClick:()=>setActiveScreen('support')},
+        ];
+
+        return (
+            <div className="p-4">
+                <div className="mb-6"><h1 className="app-text">Профиль</h1></div>
+                <div className="app-card rounded-xl p-6 shadow-sm mb-4 flex items-center gap-4">
+                   <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+    {tgUser?.photo_url
+        ? <img src={tgUser.photo_url} className="w-full h-full object-cover" />
+        : <UserIcon />
+    }
+</div>
+<div>
+    <p className="app-text">{tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Пользователь'}</p>
+    {tgUser?.username && <p className="app-text-secondary text-sm">@{tgUser.username}</p>}
+    {isAdmin&&<p className="text-blue-600 text-sm mt-1">Администратор</p>}
+</div>
+                </div>
+                <div className="app-card rounded-xl shadow-sm overflow-hidden">
+                    {menuItems.map((item,i)=>(
+                       <button key={i} onClick={item.onClick} className="w-full flex items-center justify-between gap-4 p-4 hover-item transition-colors border-b app-border last:border-b-0">
+                            <div className="flex items-center gap-4 flex-1">
+                                <item.icon />
+                                <span className="flex-1 app-text" style={{textAlign:'left'}}>{item.label}</span>
+                            </div>
+                            {item.badge&&<span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full min-w-20 text-center badge">{item.badge}</span>}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // BOTTOM NAV
+    function BottomNav({ activeScreen, onScreenChange, cartCount, favCount }) {
+        const items = [
+            {id:'home',icon:HomeIcon,label:'Главная'},
+            {id:'favorites',icon:HeartIcon,label:'Избранное',count:favCount},
+            {id:'cart',icon:ShoppingCartIcon,label:'Корзина',count:cartCount},
+            {id:'profile',icon:UserIcon,label:'Профиль'},
+        ];
+        return (
+            <nav className="bottom-nav app-card border-t app-border shadow-lg">
+                <div className="container grid grid-cols-4">
+                    {items.map(item=>(
+                        <button key={item.id} onClick={()=>onScreenChange(item.id)} className={`flex flex-col items-center gap-1 py-3 transition-colors relative ${activeScreen===item.id?'text-blue-600':'app-text-secondary'}`}>
+                            <item.icon filled={activeScreen===item.id&&item.id==='favorites'} />
+                            <span className="text-xs">{item.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </nav>
+        );
+    }
+
+    // APP
+    function App() {
+        const [activeScreen, setActiveScreen] = useState('home');
+        const [favorites, setFavorites] = useState([]);
+const [cart, setCart] = useState([]);
+// Fix 5: сразу грузим заказы из localStorage — не ждём Firebase
+const [orders, setOrders] = useState(() => {
+    try {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        const raw = localStorage.getItem('chkOrders_' + (tgId || 'guest'));
+        if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    return [];
+});
+const [userDataLoaded, setUserDataLoaded] = useState(false);
+        const [theme, setTheme] = useState('light');
+        const [isAdmin, setIsAdmin] = useState(false);
+        const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+        const [adminPanelFromProfile, setAdminPanelFromProfile] = useState(false);
+        const [products, setProducts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('chkwearProducts')||'null') || initialProducts; } catch { return initialProducts; }
+});
+        const [referralCode] = useState(() => {
+            const saved = localStorage.getItem('userReferralCode');
+            if (saved) return saved;
+            const code = 'CHKWEAR' + Math.random().toString(36).substring(2,8).toUpperCase();
+            localStorage.setItem('userReferralCode', code);
+            return code;
+        });
+        const [referralStats] = useState({ referralsCount:0, cashback:0 });
+        const tg = window.Telegram?.WebApp;
+        if (tg) { 
+          tg.expand(); 
+          tg.requestFullscreen?.();
+          setTimeout(() => window.applyTgPadding?.(), 300);
+        }
+const tgUser = tg?.initDataUnsafe?.user;
+const startParam = tg?.initDataUnsafe?.start_param;
+
+// Fix 3: Telegram BackButton — показываем "Назад" вместо "Закрыть" когда не на главной
+useEffect(() => {
+    if (!tg?.BackButton) return;
+    if (activeScreen !== 'home') {
+        tg.BackButton.show();
+        const handler = () => setActiveScreen('home');
+        tg.BackButton.onClick(handler);
+        return () => { tg.BackButton.offClick(handler); tg.BackButton.hide(); };
+    } else {
+        tg.BackButton.hide();
+    }
+}, [activeScreen]);
+useEffect(() => {
+    const init = () => {
+        const db = window.__firebaseDb;
+        if (!db) return;
+        const unsub = db.collection('products').onSnapshot(snap => {
+    setProducts(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+});
+        return unsub;
+    };
+    if (window.__firebaseDb) {
+        const unsub = init();
+        return () => unsub && unsub();
+    } else {
+        const handler = () => {
+            const unsub = init();
+            window.removeEventListener('firebaseReady', handler);
+        };
+        window.addEventListener('firebaseReady', handler);
+        return () => window.removeEventListener('firebaseReady', handler);
+    }
+}, []);
+
+useEffect(() => {
+    const db = window.__firebaseDb;
+    if (!db || !tgUser?.id) return;
+    const userId = tgUser.id.toString();
+    db.collection('users').doc(userId).get().then(async doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.favorites) setFavorites(data.favorites);
+            if (data.cart) setCart(data.cart);
+            if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
+
+            // Sync discounts from Firebase to localStorage
+            if (data.chkDiscounts) {
+                const local = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
+                const merged = [...data.chkDiscounts];
+                local.forEach(l => { if (!merged.find(m => m.id === l.id)) merged.push(l); });
+                localStorage.setItem('chkDiscounts', JSON.stringify(merged));
+            }
+            if (data.promoCodes) {
+                const local = JSON.parse(localStorage.getItem('promoCodes')||'[]');
+                const merged = [...data.promoCodes];
+                local.forEach(l => { if (!merged.find(m => m.code === l.code)) merged.push(l); });
+                localStorage.setItem('promoCodes', JSON.stringify(merged));
+            }
+
+            if (data.orders) {
+                try {
+                    const orderSnap = await db.collection('orders').where('userId','==',userId).get();
+                    const statusMap = {};
+                    orderSnap.forEach(d => { statusMap[d.data().id] = { status: d.data().status, reviewLeft: d.data().reviewLeft }; });
+                    const merged = data.orders.map(o => statusMap[o.id] ? {...o, ...statusMap[o.id]} : o);
+                    setOrders(merged);
+                    try { localStorage.setItem('chkOrders_' + userId, JSON.stringify(merged)); } catch(e) {}
+                } catch(e) {
+                    setOrders(data.orders);
+                    try { localStorage.setItem('chkOrders_' + userId, JSON.stringify(data.orders)); } catch(e2) {}
+                }
+            }
+        }
+        db.collection('users').doc(userId).set({ referralCode, username: tgUser.username || '' }, { merge: true });
+        setUserDataLoaded(true);
+    }).catch(() => setUserDataLoaded(true));
+}, [tgUser?.id]);
+
+// Real-time order status sync
+useEffect(() => {
+    const db = window.__firebaseDb;
+    if (!db || !tgUser?.id) return;
+    const userId = tgUser.id.toString();
+    const unsub = db.collection('orders').where('userId','==',userId).onSnapshot(snap => {
+        snap.docChanges().forEach(change => {
+            if (change.type === 'modified') {
+                const updated = change.doc.data();
+                setOrders(prev => {
+                    const next = prev.map(o => o.id === updated.id ? {...o, status: updated.status, reviewLeft: updated.reviewLeft} : o);
+                    try { localStorage.setItem('chkOrders_' + userId, JSON.stringify(next)); } catch(e) {}
+                    return next;
+                });
+            }
+        });
+    });
+    return () => unsub();
+}, [tgUser?.id]);
+
+        useEffect(() => {
+            const saved = localStorage.getItem('theme');
+            if (saved) setTheme(saved);
+            const urlParams = new URLSearchParams(window.location.search);
+ if (tgUser?.id === 1910027948) {
+    setIsAdmin(true);
+    if (startParam && tgUser && startParam !== referralCode) {
+    const db = window.__firebaseDb;
+    if (db) {
+        const inviterQuery = db.collection('users').where('referralCode', '==', startParam);
+        inviterQuery.get().then(snap => {
+            if (!snap.empty) {
+                const inviterDoc = snap.docs[0];
+                const inviterData = inviterDoc.data();
+                const alreadyReferrals = inviterData.referrals || [];
+                if (!alreadyReferrals.includes(tgUser.id.toString())) {
+                    inviterDoc.ref.update({
+                        referrals: [...alreadyReferrals, tgUser.id.toString()],
+                        chkCoins: (inviterData.chkCoins || 0) + 1000
+                    });
+                }
+            }
+        });
+    }
+}
+}
+        }, []);
+
+        useEffect(() => {
+            document.documentElement.classList.toggle('dark-theme', theme==='dark');
+            document.body.classList.toggle('dark-theme', theme==='dark');
+            localStorage.setItem('theme', theme);
+        }, [theme]);
+
+        useEffect(() => {
+            try { localStorage.setItem('chkwearProducts', JSON.stringify(products)); } catch(e) { console.error(e); }
+        }, [products]);
+
+        const saveUserData = (newFavorites, newCart, newOrders) => {
+    const db = window.__firebaseDb;
+    if (!db || !tgUser?.id) return;
+    const userId = tgUser.id.toString();
+    const clean = obj => JSON.parse(JSON.stringify(obj, (k, v) => v === undefined ? null : v));
+    const strip = items => items.map(p => {
+        const { images, ...rest } = p;
+        // Keep imageUrl only if it's a real URL (not base64)
+        if (rest.imageUrl && rest.imageUrl.startsWith('data:')) delete rest.imageUrl;
+        return clean(rest);
+    });
+    try {
+        db.collection('users').doc(userId).set({
+            favorites: strip(newFavorites),
+            cart: strip(newCart),
+            orders: clean(newOrders.map(o => ({ ...o, items: strip(o.items) })))
+        }, { merge: true });
+    } catch(e) { console.error('saveUserData error:', e); }
+};
+
+const addToFavorites = p => {
+    if(!favorites.find(x=>x.id===p.id)) {
+        const newFav = [...favorites, p];
+        setFavorites(newFav);
+        saveUserData(newFav, cart, orders);
+    }
+};
+const removeFromFavorites = id => {
+    const newFav = favorites.filter(p=>p.id!==id);
+    setFavorites(newFav);
+    saveUserData(newFav, cart, orders);
+};
+const addToCart = (p,mp,fp) => {
+    const newCart = [...cart, {...p,marketplace:mp,finalPrice:fp}];
+    setCart(newCart);
+    saveUserData(favorites, newCart, orders);
+};
+const removeFromCart = (id,mp) => {
+    const newCart = cart.filter((p,i,arr) => {
+        const idx = arr.findIndex(x=>x.id===id&&x.marketplace===mp);
+        return i !== idx;
+    });
+    setCart(newCart);
+    saveUserData(favorites, newCart, orders);
+};
+const createOrder = async (items, total, dm, address, comment, finalTotal, discountInfo) => {
+    const orderId = `ORD-${Date.now()}`;
+    const db = window.__firebaseDb;
+
+    // Fix 4: глобальный атомарный счётчик заказов — один на всех юзеров
+    let orderNumber = Date.now(); // fallback
+    if (db) {
+        try {
+            const counterRef = db.collection('meta').doc('orderCounter');
+            await db.runTransaction(async tx => {
+                const doc = await tx.get(counterRef);
+                orderNumber = (doc.exists ? (doc.data().count || 0) : 0) + 1;
+                tx.set(counterRef, { count: orderNumber });
+            });
+        } catch(e) {
+            // Если транзакция упала — берём количество всех заказов + 1
+            try {
+                const snap = await db.collection('orders').get();
+                orderNumber = snap.size + 1;
+            } catch(e2) { console.error(e2); }
+        }
+    }
+
+    const displayId = `Заказ #${orderNumber}`;
+    const newOrder = {id:orderId, displayId, orderNumber, date:new Date().toLocaleDateString('ru-RU'), items:[...items], total, finalTotal: finalTotal||total, status:'pending', deliveryMethod:dm, address, comment};
+    const newOrders = [newOrder, ...orders];
+    setOrders(newOrders);
+    setCart([]);
+    // Fix 5: сохраняем в localStorage сразу, не дожидаясь Firebase
+    const uid = tgUser?.id?.toString();
+    try { if (uid) localStorage.setItem('chkOrders_' + uid, JSON.stringify(newOrders)); } catch(e) {}
+    saveUserData(favorites, [], newOrders);
+
+    if (db && tgUser?.id) {
+        db.collection('orders').doc(orderId).set({
+            ...newOrder,
+            userId: tgUser.id.toString(),
+            userName: tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно',
+            username: tgUser?.username || '',
+            status: 'pending'
+        });
+    }
+
+    try {
+        const BOT_TOKEN = '7528095989:AAHvEJJCCoAWTZcqaA80kqQ4J06fRKommWs';
+        const ADMIN_ID = '7764829776';
+        const itemsText = items.map(i => `• ${i.name} — $${i.finalPrice}${i.condition==='new' ? ` (${i.marketplace})` : ' (Used)'}`).join('\n');
+        const userName = tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Неизвестно';
+        const discountLine = discountInfo ? ` (${discountInfo})` : '';
+        const msgText = `🛍 ${displayId} (#${orderId})\n\n📦 Товары:\n${itemsText}\n\n💰 Итого: $${finalTotal||total}${discountLine}\n🚚 Доставка: ${dm}\n📋 Детали: ${address||'не указан'}\n📝 Комментарий: ${comment||'нет'}\n\n👤 Покупатель: ${userName}${tgUser?.username?' (@'+tgUser.username+')':''}\n🆔 ID: ${tgUser?.id||'неизвестно'}`;
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: ADMIN_ID,
+                text: msgText,
+                reply_markup: { inline_keyboard: [
+                    [{ text: '✅ Подтверждено', callback_data: `status_confirmed_${orderId}` }, { text: '❌ Отмена', callback_data: `status_cancelled_${orderId}` }],
+                    [{ text: '🚚 В дороге', callback_data: `status_shipped_${orderId}` }, { text: '🏠 Доставлено', callback_data: `status_delivered_${orderId}` }],
+                    [{ text: '✔️ Получено покупателем', callback_data: `status_received_${orderId}` }],
+                    [{ text: '💬 Написать покупателю', url: `tg://user?id=${tgUser?.id}` }]
+                ]}
+            })
+        });
+    } catch(e) { console.error('Ошибка отправки:', e); }
+};
+
+        return (
+            <div className="min-h-screen app-bg pb-20">
+                <div className="container">
+                    {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} />}
+                    {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} />}
+                    {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} products={products} />}
+                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} products={products} />}
+                </div>
+                <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
+                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
+            </div>
+        );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+</script>
+</body>
+</html>
