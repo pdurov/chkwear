@@ -2199,8 +2199,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         );
     }
 // PROFILE
-    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser, products }) {
+    function Profile({ orders, theme, setTheme, referralCode, referralStats, isAdmin, onOpenAdminPanel, tgUser, products, resetKey }) {
         const [activeScreen, setActiveScreen] = useState('main');
+        // При нажатии на иконку Профиль снизу — возвращаемся на main
+        useEffect(() => { setActiveScreen('main'); }, [resetKey]);
         if (activeScreen==='orders') return <Orders orders={orders} onBack={()=>setActiveScreen('main')} products={products} />;
         if (activeScreen==='settings') return <Settings theme={theme} setTheme={setTheme} onBack={()=>setActiveScreen('main')} />;
         if (activeScreen==='support') return <Support onBack={()=>setActiveScreen('main')} />;
@@ -2254,7 +2256,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     }
 
     // BOTTOM NAV
-    function BottomNav({ activeScreen, onScreenChange, cartCount, favCount }) {
+    function BottomNav({ activeScreen, onScreenChange, cartCount, favCount, onResetProfile }) {
         const items = [
             {id:'home',icon:HomeIcon,label:'Главная'},
             {id:'favorites',icon:HeartIcon,label:'Избранное',count:favCount},
@@ -2265,7 +2267,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             <nav className="bottom-nav app-card border-t app-border shadow-lg">
                 <div className="container grid grid-cols-4">
                     {items.map(item=>(
-                        <button key={item.id} onClick={()=>onScreenChange(item.id)} className={`flex flex-col items-center gap-1 py-3 transition-colors relative ${activeScreen===item.id?'text-blue-600':'app-text-secondary'}`}>
+                        <button key={item.id} onClick={()=>{
+                            if (item.id === 'profile' && activeScreen === 'profile') {
+                                // Уже в профиле — сбросить подэкран на main
+                                onResetProfile?.();
+                            } else {
+                                onScreenChange(item.id);
+                            }
+                        }} className={`flex flex-col items-center gap-1 py-3 transition-colors relative ${activeScreen===item.id?'text-blue-600':'app-text-secondary'}`}>
                             <item.icon filled={activeScreen===item.id&&item.id==='favorites'} />
                             <span className="text-xs">{item.label}</span>
                         </button>
@@ -2278,6 +2287,33 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
     // APP
     function App() {
         const [activeScreen, setActiveScreen] = useState('home');
+        // Стек навигации для BackButton — запоминаем откуда пришли
+        const navStackRef = useRef([]);
+
+        const [profileResetKey, setProfileResetKey] = useState(0);
+
+        // Навигация с историей
+        const navigateTo = (screen) => {
+            navStackRef.current = [...navStackRef.current, activeScreen];
+            setActiveScreen(screen);
+        };
+        // Переключение нижней панели — сбрасывает стек
+        const switchTab = (screen) => {
+            navStackRef.current = [];
+            setActiveScreen(screen);
+        };
+        // Назад по стеку
+        const goBack = () => {
+            const stack = navStackRef.current;
+            if (stack.length > 0) {
+                const prev = stack[stack.length - 1];
+                navStackRef.current = stack.slice(0, -1);
+                setActiveScreen(prev);
+            } else {
+                setActiveScreen('home');
+            }
+        };
+
         const [favorites, setFavorites] = useState([]);
 const [cart, setCart] = useState([]);
 // Fix 5: сразу грузим заказы из localStorage — не ждём Firebase
@@ -2315,12 +2351,13 @@ const [userDataLoaded, setUserDataLoaded] = useState(false);
 const tgUser = tg?.initDataUnsafe?.user;
 const startParam = tg?.initDataUnsafe?.start_param;
 
-// Fix 3: Telegram BackButton — показываем "Назад" вместо "Закрыть" когда не на главной
+// BackButton: показываем когда есть куда вернуться
 useEffect(() => {
     if (!tg?.BackButton) return;
-    if (activeScreen !== 'home') {
+    const hasHistory = navStackRef.current.length > 0 || activeScreen !== 'home';
+    if (hasHistory) {
         tg.BackButton.show();
-        const handler = () => setActiveScreen('home');
+        const handler = () => goBack();
         tg.BackButton.onClick(handler);
         return () => { tg.BackButton.offClick(handler); tg.BackButton.hide(); };
     } else {
@@ -2569,9 +2606,9 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
                     {activeScreen==='home'&&<Home addToFavorites={addToFavorites} addToCart={addToCart} theme={theme} setTheme={setTheme} products={products} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(false);setIsAdminPanelOpen(true)}} />}
                     {activeScreen==='favorites'&&<Favorites favorites={favorites} removeFromFavorites={removeFromFavorites} addToCart={addToCart} theme={theme} products={products} />}
                     {activeScreen==='cart'&&<Cart cart={cart} removeFromCart={removeFromCart} createOrder={createOrder} theme={theme} referralCode={referralCode} products={products} />}
-                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} products={products} />}
+                    {activeScreen==='profile'&&<Profile orders={orders} theme={theme} setTheme={setTheme} referralCode={referralCode} referralStats={referralStats} isAdmin={isAdmin} onOpenAdminPanel={()=>{setAdminPanelFromProfile(true);setIsAdminPanelOpen(true)}} tgUser={tgUser} products={products} resetKey={profileResetKey} />}
                 </div>
-                <BottomNav activeScreen={activeScreen} onScreenChange={setActiveScreen} cartCount={cart.length} favCount={favorites.length} />
+                <BottomNav activeScreen={activeScreen} onScreenChange={switchTab} cartCount={cart.length} favCount={favorites.length} onResetProfile={()=>{ switchTab('profile'); setProfileResetKey(k=>k+1); }} />
                 {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
