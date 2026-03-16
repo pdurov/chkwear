@@ -1085,16 +1085,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{background:'rgba(22,163,74,0.15)'}}><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
                                 <h2 className="app-text" style={{fontSize:'1.5rem'}}>Заказ оформлен!</h2>
                                 <p className="app-text-secondary">Мы свяжемся с вами для подтверждения.</p>
-                                {/* 🎵 DAVA — Буду пьяным (автовоспроизведение) */}
                                 <div style={{borderRadius:'12px',overflow:'hidden',background:'linear-gradient(135deg,rgba(139,92,246,0.1),rgba(236,72,153,0.08))',border:'1px solid rgba(139,92,246,0.2)',padding:'10px'}}>
                                     <p style={{color:'rgba(139,92,246,0.8)',fontSize:'0.75rem',margin:'0 0 8px',fontWeight:600}}>🎵 DAVA — Буду пьяным</p>
                                     <div style={{position:'relative',paddingBottom:'56.25%',height:0,borderRadius:'8px',overflow:'hidden'}}>
-                                        <iframe
-                                            style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}}
+                                        <iframe style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}}
                                             src="https://www.youtube.com/embed/Xef8AABR6Kw?autoplay=1&start=60&rel=0&showinfo=0&modestbranding=1"
-                                            allow="autoplay; encrypted-media"
-                                            allowFullScreen
-                                        />
+                                            allow="autoplay; encrypted-media" allowFullScreen />
                                     </div>
                                 </div>
                                 <div className="bg-blue-50 rounded-xl p-4"><p className="app-text-secondary text-sm">По вопросам: <button onClick={()=>{const tg=window.Telegram?.WebApp;const url='https://t.me/kanefix';try{if(tg?.openTelegramLink){tg.openTelegramLink(url);return;}if(tg?.openLink){tg.openLink(url);return;}}catch(e){}window.open(url,'_blank');}} style={{color:'#3b82f6',textDecoration:'underline',background:'none',border:'none',cursor:'pointer',font:'inherit',padding:0}}>@kanefix</button></p></div>
@@ -1279,9 +1275,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         useEffect(() => {
             if (isCheckoutOpen && registerBack) return registerBack(() => setIsCheckoutOpen(false));
         }, [isCheckoutOpen]);
-        useEffect(() => {
-            if (isCheckoutOpen && registerBack) return registerBack(() => setIsCheckoutOpen(false));
-        }, [isCheckoutOpen]);
         const total = cart.reduce((sum,p)=>sum+(p.finalPrice||parseInt(p.displayPrice?.replace('$','')||p.price.match(/\$?\s*(\d+)/)?.[1]||0)),0);
         return (
             <div className="p-4">
@@ -1352,15 +1345,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             if (selected && registerBack) return registerBack(() => setSelected(null));
         }, [selected]);
         const safeOrders = (orders||[]).filter(o => o && o.id);
-        useEffect(() => {
-            if (selected && registerBack) return registerBack(() => setSelected(null));
-        }, [selected]);
-        useEffect(() => {
-            if (reviewOrder && registerBack) return registerBack(() => { setReviewOrder(null); setReviewSent(false); setReviewText(''); setReviewRating(5); });
-        }, [reviewOrder]);
-        useEffect(() => {
-            if (lightboxImgs && registerBack) return registerBack(() => setLightboxImgs(null));
-        }, [lightboxImgs]);
         const getStatus = s=>({
             pending:{label:'В обработке',style:{background:'rgba(234,179,8,0.15)',color:'#ca8a04'}},
             confirmed:{label:'Подтверждено',style:{background:'rgba(59,130,246,0.15)',color:'#3b82f6'}},
@@ -2035,7 +2019,6 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             </div>
         );
     }
-
     // ══════════════════════════════════════════════════════
     // SOUND CLAUDE — музыкальный плеер
     // ══════════════════════════════════════════════════════
@@ -2046,41 +2029,28 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             { id:'dava_million',     title:'Миллион',            artist:'DAVA',             yt:'hpf3WM5oJaw' },
             { id:'morgenshtern_benz',title:'Бензин',             artist:'MORGENSHTERN',     yt:'Xm_1HHFHSHY' },
             { id:'morgenshtern_dop', title:'Дорогой Майкл',      artist:'MORGENSHTERN',     yt:'a3UGBQEjuDk' },
-            { id:'face_benz',        title:'Весна',              artist:'FACE',             yt:'9FqFDHBpKHA' },
+            { id:'face_vesna',       title:'Весна',              artist:'FACE',             yt:'9FqFDHBpKHA' },
             { id:'slava_marlow',     title:'Не расстраивайся',   artist:'SLAVA MARLOW',     yt:'mCIERK3JYPI' },
             { id:'gone_fludd',       title:'PACIFICO',           artist:'GONE.Fludd',       yt:'l4PiCRPAoFw' },
-            { id:'скриптонит',       title:'На Луне',            artist:'Скриптонит',       yt:'VbTLiBMkMrU' },
+            { id:'skriptonit',       title:'На Луне',            artist:'Скриптонит',       yt:'VbTLiBMkMrU' },
             { id:'niletto',          title:'Краш',               artist:'Niletto',          yt:'g3GyCrABpCU' },
             { id:'instasamka',       title:'За деньги да',       artist:'Instasamka',       yt:'YV96xap-bVs' },
             { id:'pharaoh_candy',    title:'CANDY',              artist:'PHARAOH',          yt:'kD-MqTFTsHU' },
             { id:'ic3peak_smert',    title:'Смерть',             artist:'ic3peak',          yt:'a5W4DzaOBas' },
-            { id:'miyagi_ла',        title:'Ла-ла-ла',           artist:'MiyaGi',           yt:'CgIBfxEH8hE' },
-            { id:'эндшпиль_нет',     title:'Нет',                artist:'Эндшпиль',         yt:'MZIZMeVKuuU' },
+            { id:'miyagi_la',        title:'Ла-ла-ла',           artist:'MiyaGi',           yt:'CgIBfxEH8hE' },
+            { id:'endshpil_net',     title:'Нет',                artist:'Эндшпиль',         yt:'MZIZMeVKuuU' },
         ];
-
         const [search, setSearch] = useState('');
         const [currentTrack, setCurrentTrack] = useState(null);
-        const [isPlaying, setIsPlaying] = useState(false);
         const iframeRef = useRef(null);
-
         const filtered = TRACKS.filter(t =>
             t.title.toLowerCase().includes(search.toLowerCase()) ||
             t.artist.toLowerCase().includes(search.toLowerCase())
         );
-
-        const playTrack = (track) => {
-            setCurrentTrack(track);
-            setIsPlaying(true);
-        };
-
-        const stopTrack = () => {
-            setCurrentTrack(null);
-            setIsPlaying(false);
-        };
-
+        const playTrack = (track) => setCurrentTrack(track);
+        const stopTrack = () => setCurrentTrack(null);
         return (
             <div style={{minHeight:'100vh',background:'linear-gradient(180deg,#0d0d1a 0%,#1a0a2e 100%)',paddingBottom:'80px'}}>
-                {/* Шапка */}
                 <div style={{background:'rgba(0,0,0,0.5)',backdropFilter:'blur(12px)',padding:'14px 16px',position:'sticky',top:0,zIndex:10,borderBottom:'1px solid rgba(139,92,246,0.2)'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'12px'}}>
                         <button onClick={onBack} className="nav-back" style={{background:'rgba(255,255,255,0.08)',border:'none',borderRadius:'10px',padding:'8px 12px',color:'white',cursor:'pointer',fontSize:'0.9rem'}}>←</button>
@@ -2089,19 +2059,12 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <p style={{color:'rgba(200,150,255,0.6)',fontSize:'0.7rem',margin:0,letterSpacing:'0.08em'}}>МУЗЫКА ДЛЯ ШОППИНГА</p>
                         </div>
                     </div>
-                    {/* Поиск */}
                     <div style={{position:'relative'}}>
-                        <input
-                            value={search}
-                            onChange={e=>setSearch(e.target.value)}
-                            placeholder="Найти трек или исполнителя..."
-                            style={{width:'100%',background:'rgba(255,255,255,0.08)',border:'1px solid rgba(139,92,246,0.3)',borderRadius:'12px',padding:'10px 40px 10px 14px',color:'white',fontSize:'0.9rem',outline:'none',boxSizing:'border-box'}}
-                        />
+                        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Найти трек или исполнителя..."
+                            style={{width:'100%',background:'rgba(255,255,255,0.08)',border:'1px solid rgba(139,92,246,0.3)',borderRadius:'12px',padding:'10px 40px 10px 14px',color:'white',fontSize:'0.9rem',outline:'none',boxSizing:'border-box'}} />
                         {search && <button onClick={()=>setSearch('')} style={{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'rgba(255,255,255,0.4)',cursor:'pointer',fontSize:'1.1rem'}}>✕</button>}
                     </div>
                 </div>
-
-                {/* Плеер — встроенный YouTube iframe */}
                 {currentTrack && (
                     <div style={{margin:'12px 16px',background:'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(236,72,153,0.15))',borderRadius:'16px',border:'1px solid rgba(139,92,246,0.3)',overflow:'hidden'}}>
                         <div style={{padding:'12px 14px 8px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -2112,24 +2075,16 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                             <button onClick={stopTrack} style={{background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'50%',width:'32px',height:'32px',color:'white',cursor:'pointer',fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                         </div>
                         <div style={{position:'relative',paddingBottom:'56.25%',height:0}}>
-                            <iframe
-                                ref={iframeRef}
-                                style={{position:'absolute',top:0,left:0,width:'100%',height:'100%'}}
+                            <iframe ref={iframeRef} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%'}}
                                 src={`https://www.youtube.com/embed/${currentTrack.yt}?autoplay=1&rel=0&showinfo=0&modestbranding=1`}
-                                allow="autoplay; encrypted-media"
-                                allowFullScreen
-                                frameBorder="0"
-                            />
+                                allow="autoplay; encrypted-media" allowFullScreen frameBorder="0" />
                         </div>
                     </div>
                 )}
-
-                {/* Список треков */}
                 <div style={{padding:'8px 16px'}}>
                     {filtered.length === 0 && (
                         <div style={{textAlign:'center',padding:'40px 0',color:'rgba(255,255,255,0.3)'}}>
-                            <div style={{fontSize:'2.5rem',marginBottom:'8px'}}>🔍</div>
-                            <p>Ничего не найдено</p>
+                            <div style={{fontSize:'2.5rem',marginBottom:'8px'}}>🔍</div><p>Ничего не найдено</p>
                         </div>
                     )}
                     {filtered.map((track, i) => {
@@ -2137,11 +2092,10 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                         return (
                             <button key={track.id} onClick={()=>isActive?stopTrack():playTrack(track)} style={{
                                 width:'100%',display:'flex',alignItems:'center',gap:'12px',padding:'12px',borderRadius:'12px',
-                                background: isActive ? 'linear-gradient(135deg,rgba(139,92,246,0.25),rgba(236,72,153,0.15))' : 'rgba(255,255,255,0.04)',
-                                border: `1px solid ${isActive?'rgba(139,92,246,0.5)':'rgba(255,255,255,0.06)'}`,
+                                background:isActive?'linear-gradient(135deg,rgba(139,92,246,0.25),rgba(236,72,153,0.15))':'rgba(255,255,255,0.04)',
+                                border:`1px solid ${isActive?'rgba(139,92,246,0.5)':'rgba(255,255,255,0.06)'}`,
                                 marginBottom:'8px',cursor:'pointer',textAlign:'left',transition:'all 0.2s'
                             }}>
-                                {/* Номер / индикатор */}
                                 <div style={{width:'36px',height:'36px',borderRadius:'50%',background:isActive?'linear-gradient(135deg,#7c3aed,#ec4899)':'rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'1rem'}}>
                                     {isActive ? '⏸' : <span style={{color:'rgba(255,255,255,0.4)',fontSize:'0.8rem',fontWeight:600}}>{i+1}</span>}
                                 </div>
@@ -2149,9 +2103,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                     <p style={{color:'white',fontWeight:600,fontSize:'0.9rem',margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{track.title}</p>
                                     <p style={{color:'rgba(200,150,255,0.6)',fontSize:'0.75rem',margin:0}}>{track.artist}</p>
                                 </div>
-                                <div style={{color:isActive?'#c084fc':'rgba(255,255,255,0.2)',fontSize:'0.9rem',flexShrink:0}}>
-                                    {isActive ? '▶' : '▷'}
-                                </div>
+                                <div style={{color:isActive?'#c084fc':'rgba(255,255,255,0.2)',fontSize:'0.9rem',flexShrink:0}}>{isActive?'▶':'▷'}</div>
                             </button>
                         );
                     })}
@@ -2364,8 +2316,6 @@ useEffect(() => {
             const data = doc.data();
             if (data.favorites) setFavorites(data.favorites);
             if (data.cart) setCart(data.cart);
-            if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
-
             // Sync discounts from Firebase to localStorage
             if (data.chkDiscounts) {
                 const local = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
