@@ -16,11 +16,8 @@
         var tg = window.Telegram && window.Telegram.WebApp;
         var top = 0;
         if (tg) {
-          // contentSafeAreaInset — точный отступ под шапку Telegram (кнопка назад/закрыть)
           var ct = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
-          // safeAreaInset — системный notch/статусбар
           var st = (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
-          // Берём максимум из обоих — это и есть нужный отступ
           top = Math.max(ct, st);
         }
         var root = document.getElementById('root');
@@ -28,19 +25,11 @@
       }
       document.addEventListener('DOMContentLoaded', applyTgPadding);
       window.addEventListener('load', applyTgPadding);
-      // Повторяем — TG заполняет safeAreaInset не сразу
-      setTimeout(applyTgPadding, 100);
-      setTimeout(applyTgPadding, 500);
-      setTimeout(applyTgPadding, 1000);
-      // Слушаем событие изменения safe area от самого Telegram
-      window.addEventListener('message', function(e) {
-        try {
-          var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-          if (data && (data.eventType === 'safe_area_changed' || data.eventType === 'content_safe_area_changed')) {
-            applyTgPadding();
-          }
-        } catch(err) {}
-      });
+      // TG заполняет safe area не сразу — повторяем несколько раз
+      setTimeout(applyTgPadding, 50);
+      setTimeout(applyTgPadding, 300);
+      setTimeout(applyTgPadding, 800);
+      setTimeout(applyTgPadding, 1500);
     </script>
     <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
@@ -283,27 +272,31 @@
         const [suggestions, setSuggestions] = useState([]);
         const [searchLoading, setSearchLoading] = useState(false);
 
-        // Поиск адресов по Витебску
+        // Витебск: bbox для viewbox (приоритет локальных объектов)
+        const VITEBSK_VIEWBOX = '29.9,55.05,30.5,55.35';
+
+        const parseAddr = (item) => {
+            const a = item.address || {};
+            const road = a.road || a.pedestrian || a.footway || a.street || '';
+            const house = a.house_number || '';
+            const city = a.city || a.town || a.village || '';
+            if (road && house) return road + ', ' + house + (city ? ', ' + city : '');
+            if (road) return road + (city ? ', ' + city : '');
+            return item.display_name || '';
+        };
+
         useEffect(() => {
             if (!searchQuery || searchQuery.length < 2) { setSuggestions([]); return; }
             setSearchLoading(true);
             const timer = setTimeout(async () => {
                 try {
-                    // Ищем "запрос Витебск" + только Беларусь, все типы объектов
-                    const q = encodeURIComponent(searchQuery + ' Витебск');
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=8&addressdetails=1&countrycodes=by&featuretype=&dedupe=1`);
+                    const q = encodeURIComponent(searchQuery);
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=8&addressdetails=1&countrycodes=by&viewbox=${VITEBSK_VIEWBOX}&bounded=0`;
+                    const res = await fetch(url);
                     const data = await res.json();
-                    const items = data.map(item => {
-                        const a = item.address || {};
-                        const road = a.road || a.pedestrian || a.footway || a.street || '';
-                        const house = a.house_number || '';
-                        const city = a.city || a.town || a.village || '';
-                        let label = '';
-                        if (road && house) { label = `${road}, ${house}`; if(city) label += `, ${city}`; }
-                        else if (road) { label = road; if(city) label += `, ${city}`; }
-                        else label = item.display_name;
-                        return { label, lat: parseFloat(item.lat), lon: parseFloat(item.lon) };
-                    }).filter((v,i,arr) => v.label && arr.findIndex(x=>x.label===v.label)===i);
+                    const items = data
+                        .map(item => ({ label: parseAddr(item), lat: parseFloat(item.lat), lon: parseFloat(item.lon) }))
+                        .filter((v,i,arr) => v.label && arr.findIndex(x=>x.label===v.label)===i);
                     setSuggestions(items);
                 } catch(e) { setSuggestions([]); }
                 setSearchLoading(false);
@@ -341,8 +334,8 @@
                         const house = a.house_number || '';
                         const city = a.city || a.town || a.village || '';
                         let addr = '';
-                        if (road && house) { addr = `${road}, ${house}`; if(city) addr += `, ${city}`; }
-                        else if (road) { addr = road; if(city) addr += `, ${city}`; }
+                        if (road && house) addr = road + ', ' + house + (city ? ', ' + city : '');
+                        else if (road) addr = road + (city ? ', ' + city : '');
                         else addr = d.display_name || `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
                         onAddressSelected(addr);
                         setSearchQuery(addr);
@@ -393,8 +386,9 @@
             setLoading(true);
             const timer = setTimeout(async () => {
                 try {
-                    const q = encodeURIComponent(query + ' Витебск');
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=7&addressdetails=1&countrycodes=by&dedupe=1`);
+                    const q = encodeURIComponent(query);
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=7&addressdetails=1&countrycodes=by&viewbox=29.9,55.05,30.5,55.35&bounded=0`;
+                    const res = await fetch(url);
                     const data = await res.json();
                     const addrs = data.map(item => {
                         const a = item.address || {};
@@ -1108,7 +1102,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||a.street||'';const house=a.house_number||a.building||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house){addr=`${road}, ${house}`;if(city)addr+=`, ${city}`;}else if(road){addr=road;if(city)addr+=`, ${city}`;}else{addr=d.display_name||`${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;}setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`});}},{enableHighAccuracy:true,timeout:10000},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||'';const house=a.house_number||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house)addr=road+', '+house+(city?', '+city:'');else if(road)addr=road+(city?', '+city:'');else addr=d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},{enableHighAccuracy:true,timeout:10000,maximumAge:0},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
