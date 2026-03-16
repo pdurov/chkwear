@@ -16,14 +16,14 @@
         var tg = window.Telegram && window.Telegram.WebApp;
         var top = 0;
         if (tg) {
+          // contentSafeAreaInset — отступ от контента TG (кнопка закрыть и т.д.)
           var ct = tg.contentSafeAreaInset && tg.contentSafeAreaInset.top || 0;
+          // safeAreaInset — отступ от системных элементов (notch и т.д.)
           var st = tg.safeAreaInset && tg.safeAreaInset.top || 0;
           top = Math.max(ct, st);
-          // Добавляем небольшой отступ только если нет TG safe area данных
-          if (top === 0 && tg.initDataUnsafe && tg.initDataUnsafe.user) top = 8;
         }
         var root = document.getElementById('root');
-        if (root) root.style.paddingTop = top + 'px';
+        if (root) root.style.paddingTop = (top > 0 ? top : 0) + 'px';
       }
       document.addEventListener('DOMContentLoaded', applyTgPadding);
       window.addEventListener('load', applyTgPadding);
@@ -268,46 +268,49 @@
         const mapRef = useRef(null);
         const mapInstanceRef = useRef(null);
         const markerRef = useRef(null);
-        const [mapSearch, setMapSearch] = useState('');
-        const [mapSuggestions, setMapSuggestions] = useState([]);
-        const [mapSearchLoading, setMapSearchLoading] = useState(false);
+        const [searchQuery, setSearchQuery] = useState('');
+        const [suggestions, setSuggestions] = useState([]);
+        const [searchLoading, setSearchLoading] = useState(false);
 
-        // Поиск адресов по Витебску
+        // Поиск адресов — Витебск, с домами
         useEffect(() => {
-            if (!mapSearch || mapSearch.length < 3) { setMapSuggestions([]); return; }
-            setMapSearchLoading(true);
+            if (!searchQuery || searchQuery.length < 3) { setSuggestions([]); return; }
+            setSearchLoading(true);
             const timer = setTimeout(async () => {
                 try {
-                    // Ищем в Витебске (city=Vitebsk) + addressdetails для подъездов
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(mapSearch)}&accept-language=ru&limit=7&addressdetails=1&city=Витебск&countrycodes=by`);
+                    // Ищем в Витебске, Беларусь
+                    const q = encodeURIComponent(searchQuery + ', Витебск');
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=7&addressdetails=1&countrycodes=by`);
                     const data = await res.json();
                     const items = data.map(item => {
                         const a = item.address || {};
-                        const entrance = a.entrance ? `, подъезд ${a.entrance}` : '';
-                        const house = a.house_number ? a.house_number + entrance : null;
-                        const parts = [a.road, house, a.city||a.town||a.village].filter(Boolean);
-                        return {
-                            label: parts.length >= 2 ? parts.join(', ') : item.display_name,
-                            lat: parseFloat(item.lat),
-                            lon: parseFloat(item.lon)
-                        };
+                        const road = a.road || a.pedestrian || a.footway || '';
+                        const house = a.house_number || '';
+                        const city = a.city || a.town || a.village || 'Витебск';
+                        let label = '';
+                        if (road && house) label = `${road}, ${house}, ${city}`;
+                        else if (road) label = `${road}, ${city}`;
+                        else label = item.display_name;
+                        return { label, lat: parseFloat(item.lat), lon: parseFloat(item.lon) };
                     }).filter((v,i,arr) => arr.findIndex(x=>x.label===v.label)===i);
-                    setMapSuggestions(items);
-                } catch(e) { setMapSuggestions([]); }
-                setMapSearchLoading(false);
+                    setSuggestions(items);
+                } catch(e) { setSuggestions([]); }
+                setSearchLoading(false);
             }, 500);
             return () => clearTimeout(timer);
-        }, [mapSearch]);
+        }, [searchQuery]);
 
-        const moveMapTo = (lat, lon, label) => {
+        // Переместить маркер и карту на выбранный адрес
+        const selectAddress = (item) => {
             const map = mapInstanceRef.current;
-            if (!map) return;
-            map.setView([lat, lon], 17);
-            if (markerRef.current) markerRef.current.remove();
-            markerRef.current = L.marker([lat, lon]).addTo(map);
-            onAddressSelected(label);
-            setMapSearch(label);
-            setMapSuggestions([]);
+            if (map) {
+                map.setView([item.lat, item.lon], 17);
+                if (markerRef.current) markerRef.current.remove();
+                markerRef.current = L.marker([item.lat, item.lon]).addTo(map);
+            }
+            onAddressSelected(item.label);
+            setSearchQuery(item.label);
+            setSuggestions([]);
         };
 
         useEffect(() => {
@@ -321,16 +324,23 @@
                     if (markerRef.current) markerRef.current.remove();
                     markerRef.current = L.marker(e.latlng).addTo(map);
                     try {
-                        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&accept-language=ru&zoom=18&addressdetails=1`);
-                        const d = await r.json();
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&accept-language=ru&zoom=18&addressdetails=1`);
+                        const d = await res.json();
                         const a = d.address || {};
-                        const entrance = a.entrance ? `, подъезд ${a.entrance}` : '';
-                        const house = a.house_number ? a.house_number + entrance : null;
-                        const parts = [a.road, house, a.city||a.town||a.village].filter(Boolean);
-                        const addr = parts.length >= 2 ? parts.join(', ') : d.display_name;
+                        const road = a.road || a.pedestrian || a.footway || '';
+                        const house = a.house_number || '';
+                        const city = a.city || a.town || a.village || 'Витебск';
+                        let addr = '';
+                        if (road && house) addr = `${road}, ${house}, ${city}`;
+                        else if (road) addr = `${road}, ${city}`;
+                        else addr = d.display_name || `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
                         onAddressSelected(addr);
-                        setMapSearch(addr);
-                    } catch(err) { console.error(err); }
+                        setSearchQuery(addr);
+                    } catch(err) {
+                        const fallback = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+                        onAddressSelected(fallback);
+                        setSearchQuery(fallback);
+                    }
                 });
             }, 300);
             return () => {
@@ -345,24 +355,26 @@
                     <h3 className="app-text">Адрес на карте</h3>
                     <button onClick={onClose}><XIcon /></button>
                 </div>
-                {/* Строка поиска */}
-                <div style={{position:'relative',marginBottom:'10px'}}>
+                {/* Поиск адреса */}
+                <div style={{position:'relative',marginBottom:'8px'}}>
                     <input
-                        value={mapSearch}
-                        onChange={e=>setMapSearch(e.target.value)}
-                        placeholder="Введите улицу, дом (Витебск)..."
+                        value={searchQuery}
+                        onChange={e => { setSearchQuery(e.target.value); setSuggestions([]); }}
+                        placeholder="Улица, дом — Витебск..."
                         className="app-card app-text app-border w-full"
-                        style={{paddingRight:'36px'}}
                         autoComplete="off"
+                        style={{paddingRight:'32px'}}
                     />
-                    {mapSearch && <button onClick={()=>{setMapSearch('');setMapSuggestions([]);}} style={{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',fontSize:'1rem',color:'#9ca3af'}}>✕</button>}
+                    {searchQuery && (
+                        <button onClick={()=>{setSearchQuery('');setSuggestions([]);}} style={{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#9ca3af',fontSize:'1rem'}}>✕</button>
+                    )}
                     {/* Подсказки */}
-                    {(mapSuggestions.length>0||mapSearchLoading) && (
-                        <div className="address-suggestions app-card shadow-lg">
-                            {mapSearchLoading
+                    {(searchLoading || suggestions.length > 0) && (
+                        <div className="address-suggestions app-card shadow-lg" style={{zIndex:2000}}>
+                            {searchLoading
                                 ? <div className="p-3 flex justify-center"><div style={{width:'18px',height:'18px',border:'2px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}></div></div>
-                                : mapSuggestions.map((s,i)=>(
-                                    <div key={i} className="address-suggestion-item app-text text-sm" onClick={()=>moveMapTo(s.lat,s.lon,s.label)}>{s.label}</div>
+                                : suggestions.map((s, i) => (
+                                    <div key={i} className="address-suggestion-item app-text text-sm" onClick={() => selectAddress(s)}>{s.label}</div>
                                 ))
                             }
                         </div>
@@ -383,15 +395,19 @@
             setLoading(true);
             const timer = setTimeout(async () => {
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=ru&limit=6&addressdetails=1&city=Витебск&countrycodes=by`);
+                    // Добавляем Витебск к запросу для точности + ищем только в Беларуси
+                    const q = encodeURIComponent(query + ', Витебск');
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=6&addressdetails=1&countrycodes=by`);
                     const data = await res.json();
                     const addrs = data.map(item => {
                         const a = item.address || {};
-                        const entrance = a.entrance ? `, подъезд ${a.entrance}` : '';
-                        const house = a.house_number ? a.house_number + entrance : null;
-                        const parts = [a.road, house, a.city||a.town||a.village].filter(Boolean);
-                        return parts.length >= 2 ? parts.join(', ') : item.display_name;
-                    }).filter((v,i,arr) => arr.indexOf(v)===i);
+                        const road = a.road || a.pedestrian || a.footway || '';
+                        const house = a.house_number || '';
+                        const city = a.city || a.town || a.village || 'Витебск';
+                        if (road && house) return `${road}, ${house}, ${city}`;
+                        if (road) return `${road}, ${city}`;
+                        return item.display_name;
+                    }).filter((v,i,arr) => v && arr.indexOf(v)===i);
                     setSuggestions(addrs);
                 } catch(e) { setSuggestions([]); }
                 setLoading(false);
@@ -949,19 +965,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             if (fp||fd) {
                 const pct = Math.min((fp?fp.percent:fd.percent),100);
                 setPromoApplied(true); setDiscount(pct/100);
-                const newPC = allPC.map(p=>p.code===promoCode?{...p,used:true}:p);
-                const newCD = allCD.map(d=>d.promoCode===promoCode?{...d,used:true}:d);
-                if (fp) localStorage.setItem('promoCodes', JSON.stringify(newPC));
-                if (fd) localStorage.setItem('chkDiscounts', JSON.stringify(newCD));
-                // Сразу синхронизируем в Firebase чтобы не перезаписалось
-                const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-                const db = window.__firebaseDb;
-                if (db && tgId) {
-                    db.collection('users').doc(tgId.toString()).set({
-                        promoCodes: newPC,
-                        chkDiscounts: newCD
-                    }, { merge: true }).catch(()=>{});
-                }
+                if (fp) localStorage.setItem('promoCodes', JSON.stringify(allPC.map(p=>p.code===promoCode?{...p,used:true}:p)));
+                if (fd) localStorage.setItem('chkDiscounts', JSON.stringify(allCD.map(d=>d.promoCode===promoCode?{...d,used:true}:d)));
                 setNotification(`Скидка ${pct}% применена!`);
             } else setNotification('Неверный промокод');
         };
@@ -1106,12 +1111,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();
-                                                const a=d.address||{};
-                                                const entrance = a.entrance ? `, подъезд ${a.entrance}` : '';
-                                                const parts=[a.road,a.house_number ? a.house_number+entrance : null,a.city||a.town||a.village].filter(Boolean);
-                                                const addr=parts.length>=2?parts.join(', '):(d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`);
-                                                setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await res.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||'';const house=a.house_number||'';const city=a.city||a.town||a.village||'Витебск';let addr='';if(road&&house)addr=`${road}, ${house}, ${city}`;else if(road)addr=`${road}, ${city}`;else addr=d.display_name||`${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`;setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
@@ -2317,20 +2317,13 @@ useEffect(() => {
             // Sync discounts from Firebase to localStorage
             if (data.chkDiscounts) {
                 const local = JSON.parse(localStorage.getItem('chkDiscounts')||'[]');
-                const merged = [...data.chkDiscounts].map(fb => {
-                    const loc = local.find(l => l.id === fb.id);
-                    return loc?.used ? {...fb, used: true} : fb;
-                });
+                const merged = [...data.chkDiscounts];
                 local.forEach(l => { if (!merged.find(m => m.id === l.id)) merged.push(l); });
                 localStorage.setItem('chkDiscounts', JSON.stringify(merged));
             }
             if (data.promoCodes) {
                 const local = JSON.parse(localStorage.getItem('promoCodes')||'[]');
-                // Объединяем: берём Firebase как базу, но если локально промокод помечен used — сохраняем это
-                const merged = [...data.promoCodes].map(fb => {
-                    const loc = local.find(l => l.code === fb.code);
-                    return loc?.used ? {...fb, used: true} : fb;
-                });
+                const merged = [...data.promoCodes];
                 local.forEach(l => { if (!merged.find(m => m.code === l.code)) merged.push(l); });
                 localStorage.setItem('promoCodes', JSON.stringify(merged));
             }
