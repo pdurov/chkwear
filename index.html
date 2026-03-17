@@ -16,20 +16,31 @@
         var tg = window.Telegram && window.Telegram.WebApp;
         var top = 0;
         if (tg) {
+          // contentSafeAreaInset — это отступ под шапку Telegram (кнопка закрыть)
           var ct = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
+          // safeAreaInset — системный отступ (статусбар, notch)
           var st = (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
-          top = Math.max(ct, st);
+          top = ct + st;
+          // Если TG ещё не отдал данные — ставим разумный дефолт
+          if (top === 0 && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            top = 60; // высота шапки TG на мобиле по умолчанию
+          }
         }
         var root = document.getElementById('root');
         if (root) root.style.paddingTop = top + 'px';
       }
       document.addEventListener('DOMContentLoaded', applyTgPadding);
       window.addEventListener('load', applyTgPadding);
-      // TG заполняет safe area не сразу — повторяем несколько раз
       setTimeout(applyTgPadding, 50);
       setTimeout(applyTgPadding, 300);
       setTimeout(applyTgPadding, 800);
-      setTimeout(applyTgPadding, 1500);
+      // Слушаем обновления safe area от Telegram
+      if (window.Telegram && window.Telegram.WebApp) {
+        try {
+          window.Telegram.WebApp.onEvent('safeAreaChanged', applyTgPadding);
+          window.Telegram.WebApp.onEvent('contentSafeAreaChanged', applyTgPadding);
+        } catch(e) {}
+      }
     </script>
     <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
@@ -267,112 +278,37 @@
     function OSMMap({ onAddressSelected, onClose }) {
         const mapRef = useRef(null);
         const mapInstanceRef = useRef(null);
-        const markerRef = useRef(null);
-        const [searchQuery, setSearchQuery] = useState('');
-        const [suggestions, setSuggestions] = useState([]);
-        const [searchLoading, setSearchLoading] = useState(false);
-
-        // Витебск: bbox для viewbox (приоритет локальных объектов)
-        const VITEBSK_VIEWBOX = '29.9,55.05,30.5,55.35';
-
-        const parseAddr = (item) => {
-            const a = item.address || {};
-            const road = a.road || a.pedestrian || a.footway || a.street || '';
-            const house = a.house_number || '';
-            const city = a.city || a.town || a.village || '';
-            if (road && house) return road + ', ' + house + (city ? ', ' + city : '');
-            if (road) return road + (city ? ', ' + city : '');
-            return item.display_name || '';
-        };
-
         useEffect(() => {
-            if (!searchQuery || searchQuery.length < 2) { setSuggestions([]); return; }
-            setSearchLoading(true);
-            const timer = setTimeout(async () => {
-                try {
-                    const q = encodeURIComponent(searchQuery);
-                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=8&addressdetails=1&countrycodes=by&viewbox=${VITEBSK_VIEWBOX}&bounded=0`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    const items = data
-                        .map(item => ({ label: parseAddr(item), lat: parseFloat(item.lat), lon: parseFloat(item.lon) }))
-                        .filter((v,i,arr) => v.label && arr.findIndex(x=>x.label===v.label)===i);
-                    setSuggestions(items);
-                } catch(e) { setSuggestions([]); }
-                setSearchLoading(false);
-            }, 400);
-            return () => clearTimeout(timer);
-        }, [searchQuery]);
-
-        const selectSuggestion = (item) => {
-            const map = mapInstanceRef.current;
-            if (map) {
-                map.setView([item.lat, item.lon], 17);
-                if (markerRef.current) markerRef.current.remove();
-                markerRef.current = L.marker([item.lat, item.lon]).addTo(map);
-            }
-            onAddressSelected(item.label);
-            setSearchQuery(item.label);
-            setSuggestions([]);
-        };
-
-        useEffect(() => {
-            if (!mapRef.current || mapInstanceRef.current) return;
-            const timer = setTimeout(() => {
-                const map = L.map(mapRef.current, {tap: false}).setView([55.1848, 30.2016], 13);
-                mapInstanceRef.current = map;
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-                map.invalidateSize();
-                map.on('click', async (e) => {
-                    if (markerRef.current) markerRef.current.remove();
-                    markerRef.current = L.marker(e.latlng).addTo(map);
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&accept-language=ru&zoom=18&addressdetails=1`);
-                        const d = await res.json();
-                        const a = d.address || {};
-                        const road = a.road || a.pedestrian || a.footway || a.street || '';
-                        const house = a.house_number || '';
-                        const city = a.city || a.town || a.village || '';
-                        let addr = '';
-                        if (road && house) addr = road + ', ' + house + (city ? ', ' + city : '');
-                        else if (road) addr = road + (city ? ', ' + city : '');
-                        else addr = d.display_name || `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-                        onAddressSelected(addr);
-                        setSearchQuery(addr);
-                    } catch(err) {
-                        const fb = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-                        onAddressSelected(fb); setSearchQuery(fb);
-                    }
-                });
-            }, 300);
-            return () => {
-                clearTimeout(timer);
-                if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
-            };
-        }, []);
-
+    if (!mapRef.current || mapInstanceRef.current) return;
+    const timer = setTimeout(() => {
+        const map = L.map(mapRef.current, {tap: false}).setView([55.1848, 30.2016], 13);
+        mapInstanceRef.current = map;
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        map.invalidateSize();
+        let marker = null;
+        map.on('click', async (e) => {
+            if (marker) marker.remove();
+            marker = L.marker(e.latlng).addTo(map);
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                const d = await r.json();
+                if (d.display_name) onAddressSelected(d.display_name);
+            } catch(err) { console.error(err); }
+        });
+    }, 300);
+    return () => { 
+        clearTimeout(timer);
+        if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+    };
+}, []);
         return (
             <div className="app-card rounded-xl p-4 mb-4" style={{position:'relative',zIndex:1000}}>
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="app-text">Адрес на карте</h3>
+                    <h3 className="app-text">Выберите адрес на карте</h3>
                     <button onClick={onClose}><XIcon /></button>
                 </div>
-                <div style={{position:'relative',marginBottom:'8px'}}>
-                    <input value={searchQuery} onChange={e=>{setSearchQuery(e.target.value);setSuggestions([]);}}
-                        placeholder="Улица, дом..." className="app-card app-text app-border w-full"
-                        autoComplete="off" style={{paddingRight:'32px'}} />
-                    {searchQuery && <button onClick={()=>{setSearchQuery('');setSuggestions([]);}} style={{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#9ca3af',fontSize:'1rem'}}>✕</button>}
-                    {(searchLoading || suggestions.length > 0) && (
-                        <div className="address-suggestions app-card shadow-lg" style={{zIndex:2000}}>
-                            {searchLoading
-                                ? <div className="p-3 flex justify-center"><div style={{width:'18px',height:'18px',border:'2px solid #e5e7eb',borderTopColor:'#3b82f6',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}></div></div>
-                                : suggestions.map((s,i) => <div key={i} className="address-suggestion-item app-text text-sm" onClick={()=>selectSuggestion(s)}>{s.label}</div>)
-                            }
-                        </div>
-                    )}
-                </div>
                 <div ref={mapRef} className="map-container" style={{zIndex:1,position:'relative'}}></div>
-                <p className="app-text-secondary text-sm text-center mt-2">Введите адрес или нажмите на карту</p>
+                <p className="app-text-secondary text-sm text-center mt-2">Нажмите на карту для выбора адреса</p>
             </div>
         );
     }
@@ -382,30 +318,24 @@
         const [suggestions, setSuggestions] = useState([]);
         const [loading, setLoading] = useState(false);
         useEffect(() => {
-            if (!query || query.length < 2) { setSuggestions([]); return; }
+            if (!query || query.length < 3) { setSuggestions([]); return; }
             setLoading(true);
             const timer = setTimeout(async () => {
                 try {
-                    const q = encodeURIComponent(query);
-                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${q}&accept-language=ru&limit=7&addressdetails=1&countrycodes=by&viewbox=29.9,55.05,30.5,55.35&bounded=0`;
-                    const res = await fetch(url);
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=ru&limit=5&addressdetails=1`);
                     const data = await res.json();
                     const addrs = data.map(item => {
                         const a = item.address || {};
-                        const road = a.road || a.pedestrian || a.footway || a.street || '';
-                        const house = a.house_number || '';
-                        const city = a.city || a.town || a.village || '';
-                        if (road && house) return road + ', ' + house + (city ? ', ' + city : '');
-                        if (road) return road + (city ? ', ' + city : '');
-                        return item.display_name;
-                    }).filter((v,i,arr) => v && arr.indexOf(v)===i);
+                        const parts = [a.road, a.house_number, a.city||a.town||a.village, a.country].filter(Boolean);
+                        return parts.length >= 2 ? parts.join(', ') : item.display_name;
+                    }).filter((v,i,arr) => arr.indexOf(v)===i); // dedupe
                     setSuggestions(addrs);
                 } catch(e) { setSuggestions([]); }
                 setLoading(false);
-            }, 400);
+            }, 500);
             return () => clearTimeout(timer);
         }, [query]);
-        if (!query || query.length < 2) return null;
+        if (!query || query.length < 3) return null;
         return (
             <div className="address-suggestions app-card shadow-lg">
                 {loading
@@ -1102,7 +1032,11 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||'';const house=a.house_number||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house)addr=road+', '+house+(city?', '+city:'');else if(road)addr=road+(city?', '+city:'');else addr=d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},{enableHighAccuracy:true,timeout:10000,maximumAge:0},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();
+                                                const a=d.address||{};
+                                                const parts=[a.road,a.house_number,a.city||a.town||a.village,a.state].filter(Boolean);
+                                                const addr=parts.length>=2?parts.join(', '):(d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`);
+                                                setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
@@ -2199,7 +2133,14 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const backStack = useRef([]);
 
         const [favorites, setFavorites] = useState([]);
-const [cart, setCart] = useState([]);
+const [cart, setCart] = useState(() => {
+    try {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        const raw = localStorage.getItem('chkCart_' + (tgId || 'guest'));
+        if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    return [];
+});
 const [orders, setOrders] = useState(() => {
     try {
         const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
@@ -2302,7 +2243,13 @@ useEffect(() => {
         if (doc.exists) {
             const data = doc.data();
             if (data.favorites) setFavorites(data.favorites);
-            if (data.cart) setCart(data.cart);
+            if (data.cart) {
+                setCart(data.cart);
+                try {
+                    const tgId = tgUser?.id?.toString();
+                    if (tgId) localStorage.setItem('chkCart_' + tgId, JSON.stringify(data.cart));
+                } catch(e) {}
+            }
             if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
 
             // Sync discounts from Firebase to localStorage
@@ -2428,9 +2375,16 @@ const removeFromFavorites = id => {
     setFavorites(newFav);
     saveUserData(newFav, cart, orders);
 };
+const saveCartLocal = (newCart) => {
+    try {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        localStorage.setItem('chkCart_' + (tgId || 'guest'), JSON.stringify(newCart));
+    } catch(e) {}
+};
 const addToCart = (p,mp,fp) => {
     const newCart = [...cart, {...p,marketplace:mp,finalPrice:fp}];
     setCart(newCart);
+    saveCartLocal(newCart);
     saveUserData(favorites, newCart, orders);
 };
 const removeFromCart = (id,mp) => {
@@ -2439,6 +2393,7 @@ const removeFromCart = (id,mp) => {
         return i !== idx;
     });
     setCart(newCart);
+    saveCartLocal(newCart);
     saveUserData(favorites, newCart, orders);
 };
 const createOrder = async (items, total, dm, address, comment, finalTotal, discountInfo) => {
@@ -2469,6 +2424,7 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
     setCart([]);
+    saveCartLocal([]);
     // Fix 5: сохраняем в localStorage сразу, не дожидаясь Firebase
     const uid = tgUser?.id?.toString();
     try { if (uid) localStorage.setItem('chkOrders_' + uid, JSON.stringify(newOrders)); } catch(e) {}
