@@ -18,11 +18,7 @@
         if (tg) {
           var ct = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
           var st = (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
-          // ct = отступ под кнопку закрыть TG, st = системный notch/статусбар
-          // Берём сумму: обычно ct уже включает st, поэтому берём max
           top = Math.max(ct, st);
-          // Если TG не передал данные ещё — используем дефолт
-          if (top < 1) top = 60;
         }
         var root = document.getElementById('root');
         if (root) root.style.paddingTop = top + 'px';
@@ -346,9 +342,14 @@
     }
 
     // ADMIN PANEL
-    function AdminPanel({ isOpen, onClose, products, onAddProduct, onDeleteProduct, showTabs }) {
+    function AdminPanel({ isOpen, onClose, products, onAddProduct, onDeleteProduct, showTabs, registerBack }) {
         const [activeTab, setActiveTab] = useState('menu');
         useEffect(() => { if(isOpen) setActiveTab(showTabs ? 'menu' : 'products'); }, [isOpen]);
+
+        // Когда панель открыта — регистрируем BackButton → закрывает панель
+        useEffect(() => {
+            if (isOpen && registerBack) return registerBack(onClose);
+        }, [isOpen]);
         const [newProduct, setNewProduct] = useState({ name:'', category:'sneakers', condition:'new', imageUrl:'', description:'', poizonPrice:'', taobaoPrice:'', price:'' });
         const [uploadedImages, setUploadedImages] = useState([]);
         const [notification, setNotification] = useState(null);
@@ -454,7 +455,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                 <div className="admin-modal-content app-card" onClick={e => e.stopPropagation()}>
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
                         <h2 className="app-text">Панель администратора</h2>
-                        <button onClick={onClose} className="app-text-secondary text-sm hover:text-blue-600 px-3 py-1 rounded-xl border app-border">Закрыть</button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6 space-y-3">
                         <button onClick={()=>setActiveTab('products')} className="w-full app-card border app-border rounded-xl p-5 text-left hover:shadow-md transition-all">
@@ -488,7 +489,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
                         <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
                         <h2 className="app-text">Перевод CHK</h2>
-                        <button onClick={onClose} className="app-text-secondary text-sm hover:text-blue-600 px-3 py-1 rounded-xl border app-border">Закрыть</button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6 space-y-4">
                         <div><label className="block app-text mb-2">Юзернейм получателя</label><input value={transferUsername} onChange={e=>setTransferUsername(e.target.value)} className="app-card app-text app-border" placeholder="@username" /></div>
@@ -506,7 +507,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
                         <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
                         <h2 className="app-text">Личное сообщение</h2>
-                        <button onClick={onClose} className="app-text-secondary text-sm hover:text-blue-600 px-3 py-1 rounded-xl border app-border">Закрыть</button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6 space-y-4">
                         {dmResult ? (
@@ -555,7 +556,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
                         <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
                         <h2 className="app-text">Статистика</h2>
-                        <button onClick={onClose} className="app-text-secondary text-sm hover:text-blue-600 px-3 py-1 rounded-xl border app-border">Закрыть</button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6">
                         {statsLoading ? (
@@ -592,7 +593,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
                         <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button>
                         <h2 className="app-text">Рассылка</h2>
-                        <button onClick={onClose} className="app-text-secondary text-sm hover:text-blue-600 px-3 py-1 rounded-xl border app-border">Закрыть</button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6 space-y-4">
                         {broadcastResult ? (
@@ -643,7 +644,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                     <div className="sticky top-0 border-b app-border p-4 flex items-center justify-between z-10 app-card">
                         {showTabs ? <button onClick={()=>setActiveTab('menu')} className="app-text hover:text-blue-600 text-sm">← Назад</button> : <div/>}
                         <h2 className="app-text">Панель администратора</h2>
-                        <button onClick={onClose} className="app-text-secondary text-sm hover:text-blue-600 px-3 py-1 rounded-xl border app-border">Закрыть</button>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XIcon /></button>
                     </div>
                     <div className="p-6">
                         <h3 className="app-text mb-4">Добавить товар</h3>
@@ -1029,11 +1030,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();
-                                                const a=d.address||{};
-                                                const parts=[a.road,a.house_number,a.city||a.town||a.village,a.state].filter(Boolean);
-                                                const addr=parts.length>=2?parts.join(', '):(d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`);
-                                                setFormData({...formData,deliveryAddress:addr});}catch(e){setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},(err)=>setNotification('Геолокация недоступна: '+err.message),{enableHighAccuracy:true,timeout:15000,maximumAge:0});else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||'';const house=a.house_number||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house){addr=road+', '+house+(city?', '+city:'');}else if(road){// Пробуем извлечь номер дома из display_name
+const dn=d.display_name||'';const m=dn.match(/,\s*(\d+[А-Яа-яA-Za-z]?)\s*,/);const h2=m?m[1]:'';addr=road+(h2?', '+h2:'')+(city?', '+city:'');}else{addr=d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;}setFormData({...formData,deliveryAddress:addr});}catch(e){setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},{enableHighAccuracy:true,timeout:15000,maximumAge:0},err=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
@@ -1372,7 +1370,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const [reviewSending, setReviewSending] = useState(false);
 
         const sendReview = async () => {
-            if (reviewSending) return;
+            if (!reviewText.trim() || reviewSending) return;
             setReviewSending(true);
             const WORKER_URL = 'https://royal-disk-c66a.external-all666.workers.dev';
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -1436,7 +1434,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                 <p className="app-text-secondary" style={{fontSize:'0.78rem',lineHeight:'1.4'}}>Ваш @username в Telegram будет виден всем покупателям в разделе отзывов. Если не хотите — выберите анонимный отзыв.</p>
                             </div>
                         )}
-                        <button onClick={sendReview} disabled={reviewSending} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50" style={{cursor: reviewSending ? 'not-allowed' : 'pointer'}}>
+                        <button onClick={sendReview} disabled={!reviewText.trim() || reviewSending} className="w-full bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:opacity-50" style={{cursor: reviewSending ? 'not-allowed' : 'pointer'}}>
                             {reviewSending ? '⏳ Отправляем...' : 'Отправить отзыв'}
                         </button>
                     </div>
@@ -2184,16 +2182,16 @@ const registerBack = (fn) => {
 
 useEffect(() => {
     if (!tg?.BackButton) return;
-    const isHome = activeScreen === 'home' && backStack.current.length === 0;
+    const isHome = activeScreen === 'home' && backStack.current.length === 0 && !isAdminPanelOpen;
     if (!isHome) {
         tg.BackButton.show();
         const handler = () => {
             if (backStack.current.length > 0) {
-                // Вызываем последний зарегистрированный обработчик
                 const last = backStack.current[backStack.current.length - 1];
                 last();
+            } else if (isAdminPanelOpen) {
+                setIsAdminPanelOpen(false);
             } else {
-                // Нет обработчиков — переходим на home
                 setActiveScreen('home');
             }
         };
@@ -2202,7 +2200,7 @@ useEffect(() => {
     } else {
         tg.BackButton.hide();
     }
-}, [activeScreen, backDepth]);
+}, [activeScreen, backDepth, isAdminPanelOpen]);
 useEffect(() => {
     const init = () => {
         const db = window.__firebaseDb;
@@ -2449,7 +2447,7 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
                 </div>
                 <BottomNav activeScreen={activeScreen} onScreenChange={(s)=>{ setActiveScreen(s); backStack.current=[]; setBackDepth(0); }} cartCount={cart.length} favCount={favorites.length}
                     onResetProfile={()=>{ setProfileResetKey(k=>k+1); backStack.current=[]; setBackDepth(0); }} />
-                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
+                {isAdmin&&<AdminPanel isOpen={isAdminPanelOpen} onClose={()=>setIsAdminPanelOpen(false)} products={products} showTabs={adminPanelFromProfile} registerBack={registerBack} onAddProduct={async p=>{const db=window.__firebaseDb;if(db){await db.collection('products').add(p);}else{setProducts(prev=>[...prev,p]);}}} onDeleteProduct={async id=>{const db=window.__firebaseDb;if(db){await db.collection('products').doc(id).delete();}else{setProducts(prev=>prev.filter(p=>p.id!==id));}}} />}
             </div>
         );
     }
