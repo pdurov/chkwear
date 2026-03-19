@@ -14,17 +14,11 @@
       function applyTgPadding() {
         window.applyTgPadding = applyTgPadding;
         var tg = window.Telegram && window.Telegram.WebApp;
-        var top = 0;
+        var top = 60; // minimum to clear Telegram close button
         if (tg) {
-          // contentSafeAreaInset — это отступ под шапку Telegram (кнопка закрыть)
-          var ct = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
-          // safeAreaInset — системный отступ (статусбар, notch)
-          var st = (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
-          top = ct + st;
-          // Если TG ещё не отдал данные — ставим разумный дефолт
-          if (top === 0 && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            top = 60; // высота шапки TG на мобиле по умолчанию
-          }
+          var ct = tg.contentSafeAreaInset && tg.contentSafeAreaInset.top || 0;
+          var st = tg.safeAreaInset && tg.safeAreaInset.top || 0;
+          top = Math.max(top, ct, st);
         }
         var root = document.getElementById('root');
         if (root) root.style.paddingTop = top + 'px';
@@ -34,13 +28,6 @@
       setTimeout(applyTgPadding, 50);
       setTimeout(applyTgPadding, 300);
       setTimeout(applyTgPadding, 800);
-      // Слушаем обновления safe area от Telegram
-      if (window.Telegram && window.Telegram.WebApp) {
-        try {
-          window.Telegram.WebApp.onEvent('safeAreaChanged', applyTgPadding);
-          window.Telegram.WebApp.onEvent('contentSafeAreaChanged', applyTgPadding);
-        } catch(e) {}
-      }
     </script>
     <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
@@ -1032,11 +1019,8 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();
-                                                const a=d.address||{};
-                                                const parts=[a.road,a.house_number,a.city||a.town||a.village,a.state].filter(Boolean);
-                                                const addr=parts.length>=2?parts.join(', '):(d.display_name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`);
-                                                setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const lat=p.coords.latitude,lon=p.coords.longitude;const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||a.street||'';const house=a.house_number||a.building||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house){addr=road+', '+house+(city?', '+city:'');}else if(road){// Нет номера дома — пробуем парсить из display_name
+const m=d.display_name&&d.display_name.match(/\b(\d+[а-яёА-ЯЁa-zA-Z]?)\b/);const h=m?m[1]:'';addr=road+(h?', '+h:'')+(city?', '+city:'');}else{addr=d.display_name||lat.toFixed(4)+', '+lon.toFixed(4);}setFormData({...formData,deliveryAddress:addr});}catch{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},{enableHighAccuracy:true,timeout:10000,maximumAge:0},()=>setNotification('Геолокация недоступна'));else setNotification('Не поддерживается')}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
@@ -1382,8 +1366,9 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
             const stars = '⭐'.repeat(reviewRating);
             const authorLabel = reviewAnon ? 'Анонимно' : `${tgUser?.first_name||''}${tgUser?.username?' (@'+tgUser.username+')':''}`;
             const msg = `💬 Новый отзыв!\n\n${stars} (${reviewRating}/5)\n📦 Заказ: ${reviewOrder?.displayId||reviewOrder?.id}\n👤 От: ${authorLabel}\n\n"${reviewText}"`;
+            // Уведомляем воркера в фоне — не блокируем если упадёт
+            fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'notify_admin', text: msg }) }).catch(()=>{});
             try {
-                await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: 'notify_admin', text: msg }) });
                 const db = window.__firebaseDb;
                 if (db) {
                     await db.collection('reviews').add({ orderId: reviewOrder?.id, rating: reviewRating, text: reviewText, userId: tgUser?.id?.toString(), userName: reviewAnon ? null : tgUser?.first_name, username: reviewAnon ? null : tgUser?.username, anonymous: reviewAnon, date: new Date().toLocaleDateString('ru-RU') });
@@ -2133,14 +2118,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
         const backStack = useRef([]);
 
         const [favorites, setFavorites] = useState([]);
-const [cart, setCart] = useState(() => {
-    try {
-        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-        const raw = localStorage.getItem('chkCart_' + (tgId || 'guest'));
-        if (raw) return JSON.parse(raw);
-    } catch(e) {}
-    return [];
-});
+const [cart, setCart] = useState([]);
 const [orders, setOrders] = useState(() => {
     try {
         const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
@@ -2243,13 +2221,7 @@ useEffect(() => {
         if (doc.exists) {
             const data = doc.data();
             if (data.favorites) setFavorites(data.favorites);
-            if (data.cart) {
-                setCart(data.cart);
-                try {
-                    const tgId = tgUser?.id?.toString();
-                    if (tgId) localStorage.setItem('chkCart_' + tgId, JSON.stringify(data.cart));
-                } catch(e) {}
-            }
+            if (data.cart) setCart(data.cart);
             if (data.chkCoins !== undefined && !isAdminUser) setChkCoins(data.chkCoins);
 
             // Sync discounts from Firebase to localStorage
@@ -2375,16 +2347,9 @@ const removeFromFavorites = id => {
     setFavorites(newFav);
     saveUserData(newFav, cart, orders);
 };
-const saveCartLocal = (newCart) => {
-    try {
-        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-        localStorage.setItem('chkCart_' + (tgId || 'guest'), JSON.stringify(newCart));
-    } catch(e) {}
-};
 const addToCart = (p,mp,fp) => {
     const newCart = [...cart, {...p,marketplace:mp,finalPrice:fp}];
     setCart(newCart);
-    saveCartLocal(newCart);
     saveUserData(favorites, newCart, orders);
 };
 const removeFromCart = (id,mp) => {
@@ -2393,7 +2358,6 @@ const removeFromCart = (id,mp) => {
         return i !== idx;
     });
     setCart(newCart);
-    saveCartLocal(newCart);
     saveUserData(favorites, newCart, orders);
 };
 const createOrder = async (items, total, dm, address, comment, finalTotal, discountInfo) => {
@@ -2424,7 +2388,6 @@ const createOrder = async (items, total, dm, address, comment, finalTotal, disco
     const newOrders = [newOrder, ...orders];
     setOrders(newOrders);
     setCart([]);
-    saveCartLocal([]);
     // Fix 5: сохраняем в localStorage сразу, не дожидаясь Firebase
     const uid = tgUser?.id?.toString();
     try { if (uid) localStorage.setItem('chkOrders_' + uid, JSON.stringify(newOrders)); } catch(e) {}
