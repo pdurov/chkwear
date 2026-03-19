@@ -14,11 +14,12 @@
       function applyTgPadding() {
         window.applyTgPadding = applyTgPadding;
         var tg = window.Telegram && window.Telegram.WebApp;
-        var top = 0;
+        var top = 70; // дефолт: шапка TG ~50px + статусбар ~20px
         if (tg) {
           var ct = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
           var st = (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
-          top = Math.max(ct, st);
+          // Если TG передал реальные значения — используем их
+          if (ct > 0 || st > 0) top = Math.max(ct, st);
         }
         var root = document.getElementById('root');
         if (root) root.style.paddingTop = top + 'px';
