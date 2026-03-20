@@ -21,11 +21,7 @@
           top = Math.max(ct, st);
         }
         var root = document.getElementById('root');
-        if (root) {
-          // На мобильных устройствах добавляем 130px, на десктопе — только то что TG передаёт
-          var isMobile = window.innerWidth < 1024;
-          root.style.paddingTop = (isMobile ? Math.max(top, 130) : top) + 'px';
-        }
+        if (root) root.style.paddingTop = top + 'px';
       }
       document.addEventListener('DOMContentLoaded', applyTgPadding);
       window.addEventListener('load', applyTgPadding);
@@ -1034,7 +1030,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async p=>{try{const lat=p.coords.latitude,lon=p.coords.longitude;const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ru&zoom=18&addressdetails=1`);const d=await r.json();const a=d.address||{};const road=a.road||a.pedestrian||a.footway||a.street||'';const house=a.house_number||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house){addr=road+', '+house+(city?', '+city:'');}else if(road){addr=road+(city?', '+city:'');}else{addr=d.display_name||`${lat.toFixed(4)}, ${lon.toFixed(4)}`;}setFormData({...formData,deliveryAddress:addr});}catch(e){setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},err=>setNotification('Геолокация недоступна'),{enableHighAccuracy:true,timeout:15000,maximumAge:0});}else{setNotification('Геолокация не поддерживается');}}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async p=>{try{const lat=p.coords.latitude,lon=p.coords.longitude;const fetchAddr=async(zoom)=>{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ru&zoom=${zoom}&addressdetails=1`);return r.json();};let d=await fetchAddr(18);let a=d.address||{};let house=a.house_number||'';if(!house){d=await fetchAddr(17);a=d.address||{};house=a.house_number||'';}const road=a.road||a.pedestrian||a.footway||a.street||'';const city=a.city||a.town||a.village||'';let addr='';if(road&&house){addr=road+', '+house+(city?', '+city:'');}else if(road){addr=road+(city?', '+city:'');}else{addr=d.display_name||`${lat.toFixed(4)}, ${lon.toFixed(4)}`;}setFormData({...formData,deliveryAddress:addr});}catch(e){setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},err=>setNotification('Геолокация недоступна'),{enableHighAccuracy:true,timeout:15000,maximumAge:0});}else{setNotification('Геолокация не поддерживается');}}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
