@@ -21,7 +21,10 @@
           top = Math.max(ct, st);
         }
         var root = document.getElementById('root');
-        if (root) root.style.paddingTop = top + 'px';
+        if (root) {
+          var isMobile = window.innerWidth < 1024;
+          root.style.paddingTop = (isMobile ? Math.max(top, 130) : top) + 'px';
+        }
       }
       document.addEventListener('DOMContentLoaded', applyTgPadding);
       window.addEventListener('load', applyTgPadding);
@@ -285,16 +288,16 @@
             try {
                 const r=await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=e12802b0-99ff-4e1c-bbfb-adfb8f249d1f&geocode=${e.latlng.lng},${e.latlng.lat}&format=json&results=1&lang=ru_RU`);
                 const d=await r.json();
-                const mm=d?.response?.GeoObjectCollection?.featureMember||[];
-                if(mm.length>0){
-                    const comp=mm[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.Address?.Components||[];
+                const mm3=d?.response?.GeoObjectCollection?.featureMember||[];
+                if(mm3.length>0){
+                    const comp=mm3[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.Address?.Components||[];
                     const street=comp.find(c=>c.kind==='street')?.name||'';
                     const house=comp.find(c=>c.kind==='house')?.name||'';
                     const city=comp.find(c=>c.kind==='locality')?.name||'';
                     let addr='';
-                    if(street&&house)addr=street+', '+house;
-                    else if(street)addr=street+(city?', '+city:'');
-                    else addr=mm[0]?.GeoObject?.name||'';
+                    if(street&&house)addr='ул. '+street+', '+house;
+                    else if(street)addr='ул. '+street+(city?', '+city:'');
+                    else addr=mm3[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text||'';
                     if(addr)onAddressSelected(addr);
                 }
             } catch(err) { console.error(err); }
@@ -326,7 +329,7 @@
             setLoading(true);
             const timer = setTimeout(async () => {
                 try {
-                    const res=await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=e12802b0-99ff-4e1c-bbfb-adfb8f249d1f&geocode=${encodeURIComponent(query+" Витебск")}&format=json&results=7&lang=ru_RU`);const data=await res.json();const members2=data?.response?.GeoObjectCollection?.featureMember||[];const addrs=members2.map(m=>{const comp=m?.GeoObject?.metaDataProperty?.GeocoderMetaData?.Address?.Components||[];const street=comp.find(c=>c.kind==='street')?.name||'';const house=comp.find(c=>c.kind==='house')?.name||'';const city=comp.find(c=>c.kind==='locality')?.name||'';if(street&&house)return street+', '+house;if(street)return street+(city?', '+city:'');return m?.GeoObject?.name||'';}).filter((v,i,arr)=>v&&arr.indexOf(v)===i);setSuggestions(addrs);
+                    const res=await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=e12802b0-99ff-4e1c-bbfb-adfb8f249d1f&geocode=${encodeURIComponent(query+" Витебск")}&format=json&results=7&lang=ru_RU`);const data=await res.json();const mm2=data?.response?.GeoObjectCollection?.featureMember||[];const addrs=mm2.map(m=>{const comp=m?.GeoObject?.metaDataProperty?.GeocoderMetaData?.Address?.Components||[];const street=comp.find(c=>c.kind==='street')?.name||'';const house=comp.find(c=>c.kind==='house')?.name||'';const city=comp.find(c=>c.kind==='locality')?.name||'';if(street&&house)return 'ул. '+street+', '+house;if(street)return 'ул. '+street+(city?', '+city:'');return '';}).filter((v,i,arr)=>v&&arr.indexOf(v)===i);                    setSuggestions(addrs);
                 } catch(e) { setSuggestions([]); }
                 setLoading(false);
             }, 500);
@@ -1034,7 +1037,7 @@ onAddProduct({ ...newProduct, id, price, displayPrice: newProduct.condition==='n
                                                 {errors.deliveryAddress&&<p className="text-red-500 text-sm mt-1">{errors.deliveryAddress}</p>}
                                             </div>
                                             <button onClick={()=>setFormData({...formData,showMap:true})} className="location-button"><MapIcon /><span>Выбрать на карте</span></button>
-                                            <button onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=e12802b0-99ff-4e1c-bbfb-adfb8f249d1f&geocode=${p.coords.longitude},${p.coords.latitude}&format=json&results=1&lang=ru_RU`);const d=await r.json();const members=d?.response?.GeoObjectCollection?.featureMember||[];if(members.length>0){const comp=members[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.Address?.Components||[];const street=comp.find(c=>c.kind==='street')?.name||'';const house=comp.find(c=>c.kind==='house')?.name||'';const city=comp.find(c=>c.kind==='locality')?.name||'';let addr='';if(street&&house)addr=street+', '+house;else if(street)addr=street+(city?', '+city:'');else addr=members[0]?.GeoObject?.name||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;setFormData({...formData,deliveryAddress:addr});}else{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}}catch(e){setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},err=>setNotification('Геолокация недоступна'),{enableHighAccuracy:true,timeout:15000,maximumAge:0});}else{setNotification('Геолокация не поддерживается');}}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
+                                            <button onClick={()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://geocode-maps.yandex.ru/1.x/?apikey=e12802b0-99ff-4e1c-bbfb-adfb8f249d1f&geocode=${p.coords.longitude},${p.coords.latitude}&format=json&results=1&lang=ru_RU`);const d=await r.json();const mm=d?.response?.GeoObjectCollection?.featureMember||[];if(mm.length>0){const comp=mm[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.Address?.Components||[];const street=comp.find(c=>c.kind==='street')?.name||'';const house=comp.find(c=>c.kind==='house')?.name||'';const city=comp.find(c=>c.kind==='locality')?.name||'';let addr;if(street&&house)addr='ул. '+street+', '+house;else if(street)addr='ул. '+street+(city?', '+city:'');else addr=mm[0]?.GeoObject?.metaDataProperty?.GeocoderMetaData?.text||`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`;setFormData({...formData,deliveryAddress:addr});}else{setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}}catch(e){setFormData({...formData,deliveryAddress:`${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`});}},err=>setNotification('Геолокация недоступна'),{enableHighAccuracy:true,timeout:15000,maximumAge:0});}else setNotification('Геолокация не поддерживается');}} className="location-button"><LocationIcon /><span>Определить местоположение</span></button>
                                         </div>
                                     )}
 {formData.showMap && (
